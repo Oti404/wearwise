@@ -1,0 +1,10 @@
+@echo off
+:: WEARWISE CONFIGURATION
+:: MOVED TO SCRIPTS/DEV
+
+set "AI_PORT=5001"
+set "BACKEND_PORT=5000"
+set "FRONTEND_PORT=8081"
+set "FRONTEND_URL=http://localhost:8081"
+
+:: Path configuration is now handled dynamically by the orchestrator

@@ -1,0 +1,14 @@
+python-dotenv
+fastapi
+uvicorn[standard]
+pillow
+torch
+torchvision
+transformers
+accelerate
+ftfy
+regex
+tqdm
+python-multipart
+git+https://github.com/openai/CLIP.git
+

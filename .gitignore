@@ -1,0 +1,16 @@
+# Root gitignore
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+ai_engine/node_modules/
+ai_engine/venv/
+ai_engine/.venv/
+backend/serviceAccountKey.json
+backend/.env
+ai_engine/.env
+frontend/.env
+.DS_Store
+*.log
+
+# Orchestrator Config (contains absolute paths)
+orchestrator_config.bat

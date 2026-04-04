@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=development
+      - PORT=5000
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      - ai-engine
+
+  ai-engine:
+    build:
+      context: ./ai_engine
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - ENV=development
+    volumes:
+      - ./ai_engine:/app
+      - /app/venv
+
+  # Database service (e.g. Postgres or Redis if needed in future)
+  # db:
+  #   image: postgres:15-alphine
+  #   ports:
+  #     - "5432:5432"
