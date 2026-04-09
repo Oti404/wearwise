@@ -87,8 +87,8 @@ for /f "tokens=*" %%b in ('git branch --list') do (
 )
 set /p "sc=Numar (Q=Anuleaza): "
 if /I "%sc%"=="Q" goto :DEV_MENU
-if not "!sw[%sc%]!"=="" (
-    git checkout !sw[%sc%]!
+if not "%sc%"=="" (
+    call git checkout %%sw[!sc!]%%
 )
 pause
 goto :DEV_MENU

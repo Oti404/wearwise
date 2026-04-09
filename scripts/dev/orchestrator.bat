@@ -45,6 +45,7 @@ if exist "%AI_DIR%\venv\Scripts\python.exe" (
     set "PYTHON_CMD=%AI_DIR%\venv\Scripts\python.exe"
     goto :EOF
 )
+:: de ce aici sunt doua ifuri?
 
 :: Fallback to system python
 python --version >nul 2>&1
@@ -94,7 +95,7 @@ call :WAIT_COUNTDOWN 5
 call :CHECK_PORT %BACKEND_PORT%
 if "!PORT_BUSY!"=="1" taskkill /F /PID !BUSY_PID! >nul 2>&1
 :: Use localhost for AI_ENGINE_URL in the backend process
-call :START_SERVICE "BACKEND" "0C" "%BACKEND_DIR%" "set \"AI_ENGINE_URL=http://localhost:%AI_PORT%\" && node server.js"
+call :START_SERVICE "BACKEND" "0C" "%BACKEND_DIR%" "set AI_ENGINE_URL=http://localhost:%AI_PORT% && node server.js"
 call :WAIT_COUNTDOWN 3
 call :START_SERVICE "FRONTEND" "09" "%FRONTEND_DIR%" "npx expo start"
 call :WAIT_COUNTDOWN 2
