@@ -341,7 +341,7 @@ export function ProfilePage() {
 
         <View style={styles.galleryContainer}>
           <View style={styles.sectionTitleRow}>
-            <Text style={[styles.sectionTitle, dk && { color: '#FFFFFF' }]}>Your Wardrobe</Text>
+            <Text style={[styles.sectionTitle, dk && { color: '#FFFFFF' }]}>My Circular Wardrobe ♻️</Text>
             <View style={[styles.countBadge, dk && { backgroundColor: 'rgba(192,132,252,0.12)' }]}>
               <Text style={[styles.countText, dk && { color: '#C084FC' }]}>{closet.length} ITEMS</Text>
             </View>
