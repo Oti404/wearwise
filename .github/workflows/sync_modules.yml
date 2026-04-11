@@ -37,10 +37,10 @@ jobs:
       - name: Sync Files
         run: |
           # Curățăm repo-ul destinație (fără .git)
-          find ${{ matrix.repo }} -maxdepth 1 -not -name '.git' -not -name '.' -exec rm -rf {} +
+          find ${{ matrix.repo }} -mindepth 1 -maxdepth 1 -not -name '.git' -exec rm -rf {} +
           
-          # Copiem conținutul din monorepo în repo-ul destinație
-          cp -rv monorepo/${{ matrix.folder }}/* ${{ matrix.repo }}/
+          # Copiem conținutul din monorepo în repo-ul destinație (inclusiv .gitignore)
+          cp -a monorepo/${{ matrix.folder }}/. ${{ matrix.repo }}/
           
           # Intrăm în repo-ul destinație
           cd ${{ matrix.repo }}
