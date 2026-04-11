@@ -2,9 +2,9 @@ name: WearWise CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
   backend-test:
@@ -14,10 +14,8 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
-      - run: npm ci
+          node-version: "18"
+      - run: npm install
         working-directory: backend
       - run: npm test
         working-directory: backend
@@ -29,7 +27,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: "3.9"
       - run: pip install -r requirements.txt
         working-directory: ai_engine
       # - run: pytest
