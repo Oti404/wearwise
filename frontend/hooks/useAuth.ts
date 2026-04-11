@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/config/supabaseClient';
 import { useAppStore } from '@/store/useAppStore';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://wearwise-api.onrender.com';
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 const getErrorMessage = (err: any) => {
   if (err.message && err.message.includes('invalid-credential')) {

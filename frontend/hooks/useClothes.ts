@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { supabase } from '@/config/supabaseClient';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://wearwise-api.onrender.com';
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export interface ClothingItem {
   id?: string;

@@ -1,0 +1,61 @@
+name: Sync Modules
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - folder: 'frontend'
+            repo: 'wearwise-frontend'
+          - folder: 'backend'
+            repo: 'wearwise-backend'
+          - folder: 'ai_engine'
+            repo: 'wearwise-ai'
+
+    steps:
+      - name: Checkout Monorepo
+        uses: actions/checkout@v4
+        with:
+          path: monorepo
+
+      - name: Checkout Module Repo
+        uses: actions/checkout@v4
+        with:
+          repository: wearwiseteam/${{ matrix.repo }}
+          token: ${{ secrets.SYNC_TOKEN }}
+          path: ${{ matrix.repo }}
+          fetch-depth: 0
+
+      - name: Sync Files
+        run: |
+          # Curățăm repo-ul destinație (fără .git)
+          find ${{ matrix.repo }} -maxdepth 1 -not -name '.git' -not -name '.' -exec rm -rf {} +
+          
+          # Copiem conținutul din monorepo în repo-ul destinație
+          cp -rv monorepo/${{ matrix.folder }}/* ${{ matrix.repo }}/
+          
+          # Intrăm în repo-ul destinație
+          cd ${{ matrix.repo }}
+          
+          # Configurăm Git
+          git config user.name "WearWise Bot"
+          git config user.email "bot@wearwise.team"
+          
+          # Adăugăm fișierele (Git va respecta automat .gitignore-ul din folder)
+          git add -A
+          
+          # Commit și Push doar dacă sunt schimbări
+          if git diff --staged --quiet; then
+            echo "Nicio schimbare de sincronizat pentru ${{ matrix.folder }}."
+          else
+            git commit -m "Mirror sync from monorepo (Branch: ${GITHUB_REF#refs/heads/})"
+            git push origin HEAD:${GITHUB_REF#refs/heads/} --force
+          fi

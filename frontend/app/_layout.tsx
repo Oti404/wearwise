@@ -23,7 +23,7 @@ export const unstable_settings = {
 };
 
 // URL-ul tău oficial de backend pe Render
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://wearwise-api.onrender.com';
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 // Loading screen shown while Firebase resolves session
 function AuthLoadingScreen() {
