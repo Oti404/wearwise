@@ -13,11 +13,10 @@ import {
   ActivityIndicator
 } from "react-native";
 import * as ImagePicker from 'expo-image-picker';
-import { X, Camera, ImagePlus, Type, Tag, AlignLeft, Trash2, Sparkles } from "lucide-react-native";
+import { X, Camera, ImagePlus, Type, Tag, AlignLeft, Trash2 } from "lucide-react-native";
 
 // Asigură-te că ruta către datele tale este corectă
 import { myClosetItems, type ClothingItem } from "@/data/clothes"; 
-import BASE_URL from "@/config/api";
 
 interface AddItemModalProps {
   isOpen: boolean;
@@ -27,14 +26,10 @@ interface AddItemModalProps {
 export function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
   // ─── FORM STATES ───
   const [isPublishing, setIsPublishing] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'fail' | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
-  const [category, setCategory] = useState("Other");
   const [description, setDescription] = useState("");
-
-  const CATEGORIES = ['T-shirts', 'Pants', 'Dresses', 'Outerwear', 'Accessories', 'Footwear', 'Other'];
 
   // ─── IMAGE UPLOAD HANDLERS ───
   const takePhoto = async () => {
@@ -52,7 +47,6 @@ export function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
 
     if (!result.canceled) {
       setImage(result.assets[0].uri);
-      analyzeImage(result.assets[0].uri);
     }
   };
 
@@ -72,85 +66,12 @@ export function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
 
     if (!result.canceled) {
       setImage(result.assets[0].uri);
-      analyzeImage(result.assets[0].uri);
-    }
-  };
-
-  // ─── AI ANALYSIS ───
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [aiWarning, setAiWarning] = useState<string | null>(null);
-
-  const analyzeImage = async (uri: string) => {
-    if (!uri) return;
-    console.log(`[AI Debug] Starting analysis for URI: ${uri}`);
-    setIsAnalyzing(true);
-    setVerificationStatus('pending');
-    setAiWarning(null);
-
-    try {
-      // ─── UNIVERSAL BLOB FETCH ───
-      // Works on Web (blob: URIs) and Mobile (file: URIs)
-      const responseBlob = await fetch(uri);
-      const blob = await responseBlob.blob();
-
-      const formData = new FormData();
-      const filename = uri.split('/').pop() || 'photo.jpg';
-
-      console.log(`[AI Debug] Creating FormData - Filename: ${filename}, Blob Size: ${blob.size} bytes`);
-      
-      formData.append('image', blob, filename);
-
-      console.log(`[AI Debug] Sending request to: ${BASE_URL}/ai/analyze with method POST`);
-      const response = await fetch(`${BASE_URL}/ai/analyze`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        console.error(`[AI Debug] Server error: ${response.status}`);
-        throw new Error("Backend unavailable");
-      }
-      
-      const result = await response.json();
-      console.log(`[AI Debug] Received results:`, JSON.stringify(result, null, 2));
-      
-      if (result.ai_suggestions) {
-        console.log(`[AI Debug] AI Conclusions - Safe: ${result.ai_suggestions.is_safe}, Clothing: ${result.is_clothing}`);
-        
-        if (!result.ai_suggestions.is_safe || !result.is_clothing) {
-          console.warn("[AI Debug] Verification FAILED");
-          setAiWarning("AI suggests this item might be inappropriate or not clothing.");
-          setVerificationStatus('fail');
-        } else {
-          console.log("[AI Debug] Verification SUCCESS");
-          setVerificationStatus('success');
-        }
-        
-        // Auto-fill
-        console.log(`[AI Debug] Auto-completing: Name='${result.ai_suggestions.name}', Category='${result.ai_suggestions.category}'`);
-        if (!name.trim()) setName(result.ai_suggestions.name);
-        if (!description.trim()) setDescription(result.ai_suggestions.description);
-        if (result.ai_suggestions.category) setCategory(result.ai_suggestions.category);
-      }
-    } catch (err) {
-      console.error("[AI Debug] Analysis error:", err);
-      setVerificationStatus('fail');
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 
   // ─── SAVE HANDLER ───
   const handlePublish = () => {
     if (!image || !name) return; 
-
-    if (verificationStatus === 'fail') {
-      alert("AI suggests this item is not clothing. Please use a different photo.");
-      return;
-    }
 
     setIsPublishing(true);
 
@@ -159,7 +80,7 @@ export function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
       name: name,
       price: parseFloat(price) || 0,
       image: image,
-      category: category, 
+      category: "Newly Added", 
       size: "M", 
       seller: "Ambra", 
       distance: 0,
@@ -179,7 +100,7 @@ export function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
     }, 1200);
   };
 
-  const isFormValid = image !== null && name.trim().length > 0 && verificationStatus !== 'fail';
+  const isFormValid = image !== null && name.trim().length > 0;
 
   return (
     <Modal
@@ -198,21 +119,7 @@ export function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
           
           {/* ─── HEADER ─── */}
           <View style={styles.header}>
-            <View style={styles.headerTitleRow}>
-              <Text style={styles.headerTitle}>New in Wardrobe</Text>
-              {verificationStatus && (
-                <View style={[
-                  styles.statusBadge, 
-                  verificationStatus === 'success' ? styles.statusBadgeSuccess : 
-                  verificationStatus === 'fail' ? styles.statusBadgeFail : styles.statusBadgePending
-                ]}>
-                  <Text style={styles.statusBadgeText}>
-                    {verificationStatus === 'success' ? 'AI Verified' : 
-                     verificationStatus === 'fail' ? (image ? 'Check Image' : 'No Image') : 'Scanning...'}
-                  </Text>
-                </View>
-              )}
-            </View>
+            <Text style={styles.headerTitle}>New Item</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <X size={20} color="#2B2B2B" opacity={0.4} />
             </TouchableOpacity>
@@ -226,40 +133,15 @@ export function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
             {/* 1. IMAGE SECTION */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Product Photo *</Text>
-
-              {isAnalyzing && (
-                <View style={styles.scanningOverlay}>
-                  <ActivityIndicator color="#5A2D82" size="small" />
-                  <Text style={styles.scanningText}>AI is scanning your item...</Text>
-                </View>
-              )}
-
-              {aiWarning && (
-                <View style={styles.warningBox}>
-                  <Text style={styles.warningText}>{aiWarning}</Text>
-                </View>
-              )}
               
               {image ? (
-                <View style={styles.imagePreviewContainer}>
-                  <View style={styles.imagePreviewWrapper}>
-                    <Image source={{ uri: image }} style={styles.imagePreview} />
-                    <TouchableOpacity 
-                      style={styles.deleteImageBtn}
-                      onPress={() => setImage(null)}
-                    >
-                      <Trash2 size={20} color="#EF4444" />
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* AI VERIFY BUTTON */}
+                <View style={styles.imagePreviewWrapper}>
+                  <Image source={{ uri: image }} style={styles.imagePreview} />
                   <TouchableOpacity 
-                    style={[styles.aiVerifyBtn, isAnalyzing && styles.aiVerifyBtnDisabled]} 
-                    onPress={() => analyzeImage(image)}
-                    disabled={isAnalyzing}
+                    style={styles.deleteImageBtn}
+                    onPress={() => setImage(null)}
                   >
-                    <Sparkles size={16} color="#FFF" />
-                    <Text style={styles.aiVerifyBtnText}>Verify with AI ✨</Text>
+                    <Trash2 size={20} color="#EF4444" />
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -290,35 +172,6 @@ export function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
                 placeholderTextColor="#D1D5DB"
                 style={styles.textInput}
               />
-            </View>
-
-            {/* 2.5 CATEGORY (AI SUGGESTED) */}
-            <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Tag size={12} color="rgba(43,43,43,0.4)" />
-                <Text style={styles.label}>Category</Text>
-              </View>
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.categoryScroll}
-              >
-                {CATEGORIES.map((cat) => (
-                  <TouchableOpacity
-                    key={cat}
-                    style={[
-                      styles.categoryChip,
-                      category === cat && styles.categoryChipActive
-                    ]}
-                    onPress={() => setCategory(cat)}
-                  >
-                    <Text style={[
-                      styles.categoryChipText,
-                      category === cat && styles.categoryChipTextActive
-                    ]}>{cat}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
             </View>
 
             {/* 3. PRICE */}
@@ -383,7 +236,7 @@ export function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
                   styles.publishBtnText, 
                   (!isFormValid && !isPublishing) && styles.publishBtnTextDisabled
                 ]}>
-                  {isAnalyzing ? "AI Scanning..." : verificationStatus === 'fail' ? "Invalid Item" : "Add to Closet"}
+                  Add to Closet
                 </Text>
               )}
             </TouchableOpacity>
@@ -434,32 +287,6 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#2B2B2B',
   },
-  headerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusBadgeSuccess: {
-    backgroundColor: '#E8F5E9',
-  },
-  statusBadgeFail: {
-    backgroundColor: '#FFEBEE',
-  },
-  statusBadgePending: {
-    backgroundColor: '#F3E5F5',
-  },
-  statusBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    color: '#2B2B2B',
-  },
   closeBtn: {
     padding: 10,
     backgroundColor: '#FFF',
@@ -488,42 +315,9 @@ const styles = StyleSheet.create({
     color: 'rgba(43,43,43,0.4)',
     letterSpacing: 1.5,
   },
-  scanningOverlay: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: 'rgba(90, 45, 130, 0.05)',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  scanningText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#5A2D82',
-  },
-  warningBox: {
-    backgroundColor: 'rgba(231, 76, 60, 0.1)',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(231, 76, 60, 0.2)',
-  },
-  warningText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#E74C3C',
-    textAlign: 'center',
-  },
-  imagePreviewContainer: {
-    width: '100%',
-    aspectRatio: 1,
-    position: 'relative',
-  },
   imagePreviewWrapper: {
     width: '100%',
-    height: '100%',
+    aspectRatio: 1,
     borderRadius: 32,
     borderWidth: 4,
     borderColor: '#FFF',
@@ -611,30 +405,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F3F4F6',
   },
-  categoryScroll: {
-    gap: 8,
-    paddingVertical: 4,
-  },
-  categoryChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: 'rgba(90,45,130,0.1)',
-  },
-  categoryChipActive: {
-    backgroundColor: '#5A2D82',
-    borderColor: '#5A2D82',
-  },
-  categoryChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#5A2D82',
-  },
-  categoryChipTextActive: {
-    color: '#FFF',
-  },
   priceInputWrapper: {
     justifyContent: 'center',
   },
@@ -689,34 +459,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 15,
     elevation: 5,
-  },
-  aiVerifyBtn: {
-    position: 'absolute',
-    bottom: 12,
-    right: 12,
-    zIndex: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#5A2D82',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    shadowColor: '#5A2D82',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  aiVerifyBtnDisabled: {
-    backgroundColor: '#9CA3AF',
-    shadowOpacity: 0.1,
-  },
-  aiVerifyBtnText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.5,
   },
   publishBtnActive: {
     backgroundColor: '#10b981',

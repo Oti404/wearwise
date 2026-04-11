@@ -6,7 +6,7 @@ import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-rout
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
-import { supabase } from '@/config/supabase';
+import { supabase } from '@/config/supabaseClient';
 import { useAppStore } from '@/store/useAppStore';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useFonts, Quicksand_400Regular, Quicksand_500Medium, Quicksand_700Bold } from '@expo-google-fonts/quicksand';
@@ -15,7 +15,6 @@ import { Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold, Manrope_700
 import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold, Outfit_700Bold } from '@expo-google-fonts/outfit';
 import { PlayfairDisplay_700Bold, PlayfairDisplay_900Black } from '@expo-google-fonts/playfair-display';
 import * as SplashScreen from 'expo-splash-screen';
-import BASE_URL from '@/config/api';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -23,8 +22,8 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-// URL-ul tău oficial de backend
-const API_URL = BASE_URL;
+// URL-ul tău oficial de backend pe Render
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://wearwise-api.onrender.com';
 
 // Loading screen shown while Firebase resolves session
 function AuthLoadingScreen() {
@@ -126,58 +125,62 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    console.log('[Layout] Setting up Supabase onAuthStateChange listener...');
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const user = session?.user;
-      console.log('[Layout] Auth event:', event, 'User UID:', user?.id ?? 'null (logged out)');
+    console.log('[Layout] Setting up Supabase auth listener...');
+    
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleAuthChange(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('[Layout] Auth state changed. Event:', _event);
+      handleAuthChange(session?.user ?? null);
+    });
+
+    async function handleAuthChange(user: any) {
+      console.log('[Layout] Handling auth change. User ID:', user?.id ?? 'null');
 
       if (user) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000); 
 
         try {
-          console.log('[Layout] Fetching profile from backend for UID:', user.id);
+          console.log('[Layout] Fetching profile from backend for ID:', user.id);
           
           const response = await fetch(`${API_URL}/user/${user.id}`, { 
             signal: controller.signal 
           });
           
           clearTimeout(timeoutId);
-          console.log('[Layout] Backend profile response status:', response.status);
           const profileData = await response.json();
 
           if (response.ok) {
-            console.log('[Layout] Profile loaded successfully:', profileData?.firstName);
             login(profileData);
           } else {
-            console.warn('[Layout] Backend returned error, using fallback');
+            // Fallback for new users or sync issues
             login({
               uid: user.id,
-              email: user.email ?? null,
-              firstName: '',
-              lastName: '',
+              email: user.email,
+              firstName: user.user_metadata?.first_name || '',
+              lastName: user.user_metadata?.last_name || '',
               phone: '', country: '', city: '', address: '',
             });
           }
         } catch (error: any) {
           clearTimeout(timeoutId);
-          console.error('[Layout] Network error fetching profile:', error.message);
           login({
             uid: user.id,
-            email: user.email ?? null,
+            email: user.email,
             firstName: '', lastName: '', phone: '', country: '', city: '', address: '',
           });
         }
       } else {
-        console.log('[Layout] No Supabase user - logging out.');
         logout();
       }
       setIsAuthLoading(false);
-    });
+    }
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {

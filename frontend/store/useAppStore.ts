@@ -30,14 +30,12 @@ interface User {
   tradesCount?: number;
   donationsCount?: number;
   salesCount?: number;
-  followersCount?: number;
-  followingCount?: number;
 }
 
 interface AppState {
   // Navigare
-  view: 'swipe' | 'profile' | 'notifications' | 'community' | 'cart';
-  setView: (view: 'swipe' | 'profile' | 'notifications' | 'community' | 'cart') => void;
+  view: 'swipe' | 'profile' | 'notifications' | 'donations' | 'cart';
+  setView: (view: 'swipe' | 'profile' | 'notifications' | 'donations' | 'cart') => void;
   
   // Autentificare
   isLoggedIn: boolean;
@@ -70,10 +68,6 @@ interface AppState {
   // Dark Mode
   isDarkMode: boolean;
   setDarkMode: (val: boolean) => void;
-
-  // Refresh Trigger
-  clothesUpdateTrigger: number;
-  refreshClothes: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -130,12 +124,6 @@ export const useAppStore = create<AppState>()(
       // Dark Mode
       isDarkMode: false,
       setDarkMode: (val) => set({ isDarkMode: val }),
-
-      // Refresh Trigger
-      clothesUpdateTrigger: 0,
-      refreshClothes: () => set((state) => ({ 
-        clothesUpdateTrigger: state.clothesUpdateTrigger + 1 
-      })),
     }),
     {
       name: 'wearwise-storage',

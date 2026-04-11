@@ -18,9 +18,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FilterModal, { FilterState } from "./FilterModal";
 import RadiusSelector from "./RadiusSelector";
 import SwipeCard from "./SwipeCard";
-import BASE_URL from '@/config/api';
-import { useFollow } from '@/hooks/useFollow';
-import FeedFollowing from './FeedFollowing';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -33,20 +30,12 @@ const SwipeView = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const swiperRef = useRef<Swiper<any>>(null);
-  const { 
-    radius, cart, skipped, addToCart, skipItem, resetFilters,
-    addingItem, uploadProgress, isDarkMode, clothesUpdateTrigger 
-  } = useAppStore();
+  const { radius, cart, skipped, addToCart, skipItem, addingItem, uploadProgress, isDarkMode } = useAppStore();
   const dk = isDarkMode;
 
-  const { fetchExploreFeed, error: fetchError, loading: fetchLoading } = useClothes();
-
-  const [feedMode, setFeedMode] = useState<'fyp' | 'following'>('fyp');
-  useFollow(); // imported for FeedFollowing component usage
+  const { fetchExploreFeed } = useClothes();
 
   const [items, setItems] = useState<ClothingItem[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [deckKey, setDeckKey] = useState(0);
   const [availableHeight, setAvailableHeight] = useState(0);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -60,130 +49,51 @@ const SwipeView = () => {
     sortBy: 'newest'
   });
 
-  // --- STALE CLOSURE FIX: Use a ref to always have the latest state in swiper callbacks ---
-  const stateRef = useRef({
-    items, nextCursor, skipped, cart, loading: fetchLoading, currentCardIndex
-  });
-
   useEffect(() => {
-    stateRef.current = { items, nextCursor, skipped, cart, loading: fetchLoading, currentCardIndex };
-  }, [items, nextCursor, skipped, cart, fetchLoading, currentCardIndex]);
-
-  // Keep a separate ref for fetching to prevent duplicates even within the same render cycle
-  const isFetchingRef = useRef(false);
-
-  // Store the cards currently being swiped to prevent jumping
-  const [deckItems, setDeckItems] = useState<ClothingItem[]>([]);
-
-  useEffect(() => {
-    // FeedFollowing component handles its own data — skip swipe deck fetch
-    if (feedMode === 'following') return;
-
-    console.log(`[SwipeView] 🚀 Initializing FYP feed...`);
-    fetchExploreFeed(undefined, 10).then(res => {
-      console.log(`[SwipeView] ✅ Initial Load: ${res.items.length} items. Cursor: ${res.nextCursor}`);
-      setItems(res.items);
-      setNextCursor(res.nextCursor);
-    });
-  }, [deckKey, clothesUpdateTrigger, feedMode]);
-
-  const loadMoreCards = async () => {
-    const { nextCursor: currentCursor } = stateRef.current;
-    if (currentCursor && !isFetchingRef.current) {
-      console.log(`[SwipeView] 🔄 Pre-fetching NEXT 10 items (Cursor: ${currentCursor})...`);
-      isFetchingRef.current = true;
-      try {
-        const res = await fetchExploreFeed(currentCursor, 10);
-        if (res.items.length > 0) {
-          console.log(`[SwipeView] ✨ Appended ${res.items.length} items. Pool: ${items.length + res.items.length}`);
-          setItems(prev => [...prev, ...res.items]);
-          setNextCursor(res.nextCursor);
-        } else {
-          setNextCursor(null);
-        }
-      } finally {
-        isFetchingRef.current = false;
-      }
-    }
-  };
-
-  const handleSwiped = (index: number) => {
-    const { items: allFetched } = stateRef.current;
-    const itemsLeft = allFetched.length - (index + 1);
-    
-    console.log(`[SwipeView] 👆 Swiped index ${index}. Items left in memory: ${itemsLeft}`);
-    
-    // Fetch earlier (threshold 6)
-    if (itemsLeft <= 6) {
-      loadMoreCards();
-    }
-  };
-
-  const handleSwipedAll = async () => {
-    const { nextCursor: currentCursor, items: allFetched, currentCardIndex: lastIndex } = stateRef.current;
-    console.log(`[SwipeView] 🏁 All cards visually swiped. Index: ${lastIndex}. Pool: ${allFetched.length}. Cursor: ${!!currentCursor}`);
-    
-    // Logica de Re-Umplere:
-    // 1. Daca avem haine in pool pe care inca nu le-am aratat in acest deck (Pool > Index)
-    // 2. SAU daca am terminat tot ce aveam in pool dar mai exista pagini de adus (currentCursor)
-    if (allFetched.length > lastIndex || currentCursor) {
-      if (allFetched.length <= lastIndex && currentCursor) {
-        // Suntem la finalul memoriei, dar mai sunt pagini pe server. Tragem restul!
-        await loadMoreCards();
-      }
-      console.log(`[SwipeView] 🔄 Refreshing deckKey for next batch.`);
-      setDeckKey(prev => prev + 1);
-      setCurrentCardIndex(0);
-    } else {
-      // 3. Nu mai sunt haine noi deloc nici pe server. Re-aratam pe cele skipuite.
-      console.log(`[SwipeView] ℹ️ Truly finished all items. Showing skipped collection.`);
-      setDeckKey(prev => prev + 1);
-      setCurrentCardIndex(0);
-    }
-  };
+    fetchExploreFeed().then(setItems);
+  }, [deckKey]);
 
   const filteredItems = useMemo<ClothingItem[]>(() => {
-    const rawCount = items.length;
-    
-    // 1. ELIMINĂM CE E ÎN COȘ (Regulă de bază)
-    const afterCart = items.filter(item => !cart.find(c => c.id === item.id));
+    let result = items.filter((item: ClothingItem) => {
+      const isAvailable = !skipped.includes(item.id!) && !cart.find((c) => c.id === item.id);
+      if (!isAvailable) return false;
 
-    // 2. APLICĂM FILTRELE ACTIVE (Search + Categorie + Mărime + etc.)
-    const afterFilters = afterCart.filter(item => {
-      // Search Box Filter
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         const matchesName = (item.name || '').toLowerCase().includes(query);
         const matchesCategory = (item.category || '').toLowerCase().includes(query);
         if (!matchesName && !matchesCategory) return false;
       }
-      // Modal Filters
+
       if (filters.modes.length > 0 && !filters.modes.includes(item.mode)) return false;
       if (filters.categories.length > 0 && !filters.categories.includes(item.category)) return false;
       if (filters.sizes.length > 0 && !filters.sizes.includes(item.size)) return false;
       if (filters.conditions.length > 0 && !filters.conditions.includes(item.condition)) return false;
+
       return true;
     });
 
-    // 3. PRIORITIZĂM (Noutatea în față, Refuzurile la final)
-    const unseen = afterFilters.filter(item => !skipped.includes(item.id!));
-    const alreadySkipped = afterFilters.filter(item => skipped.includes(item.id!));
-    const finalResult = [...unseen, ...alreadySkipped];
+    switch (filters.sortBy) {
+      case 'price_asc':
+        result.sort((a: ClothingItem, b: ClothingItem) => (a.price || 0) - (b.price || 0));
+        break;
+      case 'price_desc':
+        result.sort((a: ClothingItem, b: ClothingItem) => (b.price || 0) - (a.price || 0));
+        break;
+      case 'distance':
+        result.sort((a: ClothingItem, b: ClothingItem) => (a.distance || 0) - (b.distance || 0));
+        break;
+      default:
+        result.sort((a: ClothingItem, b: ClothingItem) => {
+          const timeA = (a as any).createdAt?.seconds || 0;
+          const timeB = (b as any).createdAt?.seconds || 0;
+          return timeB - timeA;
+        });
+    }
 
-    // --- ADVANCED DEBUGGER ---
-    console.group(`[WearWise DEBUGGER] - DeckKey: ${deckKey}`);
-    console.log(`📦 MEMORIE (Pool): ${rawCount} haine`);
-    console.log(`🛒 ÎN COȘ: ${cart.length} | ❌ REFUZATE (Session): ${skipped.length}`);
-    console.log(`🔍 FILTRARE: ${afterFilters.length} / ${rawCount} trec de filtre`);
-    console.log(`✨ BATCH SWIPE: ${unseen.length} noi | 🔄 ${alreadySkipped.length} recalculate`);
-    console.log(`📍 INDEX CURENT: ${currentCardIndex + 1} / ${finalResult.length}`);
-    const remainingToFetch = rawCount - (currentCardIndex + 1);
-    console.log(`📥 NEXT FETCH ÎN: ${remainingToFetch - 6} swipe-uri (Threshold: 6)`);
-    console.groupEnd();
-
-    return finalResult;
+    return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, deckKey, cart, skipped, filters, searchQuery]);
+  }, [items, filters, searchQuery]);
 
   const handleApplyFilters = (newFilters: FilterState) => {
     setFilters(newFilters);
@@ -236,45 +146,10 @@ const SwipeView = () => {
             <TouchableOpacity onPress={() => {}} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
               <Menu size={24} color={dk ? '#C084FC' : '#3B1C56'} strokeWidth={2.5} />
             </TouchableOpacity>
-            {/* Feed Mode Tabs */}
-            <View style={[styles.feedTabs, dk && { backgroundColor: '#2B2B2B' }]}>
-              <TouchableOpacity
-                style={[styles.feedTab, feedMode === 'fyp' && styles.feedTabActive, dk && feedMode === 'fyp' && { backgroundColor: '#5A2D82' }]}
-                onPress={() => { if (feedMode !== 'fyp') { setFeedMode('fyp'); setDeckKey(k => k + 1); setCurrentCardIndex(0); }}}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.feedTabText, feedMode === 'fyp' && styles.feedTabTextActive, dk && feedMode !== 'fyp' && { color: 'rgba(255,255,255,0.4)' }]}>
-                  For You
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.feedTab, feedMode === 'following' && styles.feedTabActive, dk && feedMode === 'following' && { backgroundColor: '#5A2D82' }]}
-                onPress={() => { if (feedMode !== 'following') { setFeedMode('following'); setDeckKey(k => k + 1); setCurrentCardIndex(0); }}}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.feedTabText, feedMode === 'following' && styles.feedTabTextActive, dk && feedMode !== 'following' && { color: 'rgba(255,255,255,0.4)' }]}>
-                  Following
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={[styles.titleText, dk && { color: '#FFFFFF' }]}>For You</Text>
           </View>
 
           <View style={styles.headerActionBox}>
-            {skipped.length > 0 && (
-              <TouchableOpacity
-                style={[styles.iconCircleBtn, { backgroundColor: '#FF4B4B15', borderColor: '#FF4B4B30' }]}
-                onPress={() => {
-                  resetFilters();
-                  setItems([]); // Clear local cache to force a real backend refresh
-                  setDeckKey(prev => prev + 1);
-                }}
-                activeOpacity={0.8}
-                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-              >
-                <RotateCcw size={20} color="#FF4B4B" strokeWidth={3} />
-              </TouchableOpacity>
-            )}
-
             <TouchableOpacity style={[styles.iconCircleBtn, dk && { backgroundColor: '#2B2B2B', borderColor: 'rgba(255,255,255,0.06)' }]} onPress={() => router.push('/notifications')} activeOpacity={0.8} hitSlop={{top: 5, bottom: 5, left: 5, right: 5}}>
               <Bell size={22} color={dk ? '#C084FC' : '#5A2D82'} strokeWidth={2.5} />
             </TouchableOpacity>
@@ -353,11 +228,7 @@ const SwipeView = () => {
       
 
       
-      {/* Following Mode: vertical list feed — completely replaces swipe deck */}
-      {feedMode === 'following' ? (
-        <FeedFollowing style={{ flex: 1 }} />
-      ) : (
-      <View
+      <View 
         style={styles.cardArea}
         onLayout={(e) => {
           const { height } = e.nativeEvent.layout;
@@ -366,10 +237,9 @@ const SwipeView = () => {
       >
         {filteredItems.length > 0 ? (
           <Swiper
-            key={`${deckKey}-${items.length}-${radius}-${availableHeight > 0 ? 1 : 0}`}
+            key={`${deckKey}-${radius}-${availableHeight > 0 ? 1 : 0}`}
             ref={swiperRef}
             cards={filteredItems}
-            useViewOverflow={Platform.OS !== 'web'}
             renderCard={(card: ClothingItem) => (
               <SwipeCard
                 item={card}
@@ -377,24 +247,19 @@ const SwipeView = () => {
                 cardHeight={availableHeight ? availableHeight - 20 : CARD_HEIGHT}
               />
             )}
-            onSwiped={(index: number) => {
-              setCurrentCardIndex(index + 1);
-              handleSwiped(index);
-            }}
             onSwipedLeft={(index: number) => {
               handleSwipeLeft(index);
             }}
             onSwipedRight={(index: number) => {
               handleSwipeRight(index);
             }}
-            cardIndex={currentCardIndex}
+            cardIndex={0}
             backgroundColor="transparent"
-            stackSize={Math.min(filteredItems.length - currentCardIndex, 10) || 1}
+            stackSize={3}
             stackSeparation={14}
             animateCardOpacity
             disableTopSwipe
             disableBottomSwipe
-            onSwipedAll={handleSwipedAll}
             // AICI ESTE MODIFICAREA PENTRU EFECTUL DE PENDUL (PIVOT SUS)
             // Joacă-te cu aceste valori (ex: 20deg, 30deg) pentru a face efectul mai extrem //todo
             outputRotationRange={['15deg', '0deg', '-15deg']}
@@ -425,24 +290,19 @@ const SwipeView = () => {
             <View style={styles.emptyIconBox}>
               <RotateCcw size={38} color="#F4C542" />
             </View>
-            <Text style={styles.emptyTitle}>
-              {fetchError ? 'Network Error' : 'Wardrobe explored!'}
-            </Text>
+            <Text style={styles.emptyTitle}>Wardrobe explored!</Text>
             <Text style={styles.emptySubtitle}>
-              {fetchError
-                ? `Could not connect to ${BASE_URL}.\nError: ${fetchError}`
-                : feedMode === 'following'
-                  ? `Follow some users in the Community tab to see their items here.`
-                  : `We checked everything within a radius of ${radius}km.\nCheck back soon for updates!`}
+              We checked everything within a radius of{' '}
+              <Text style={{ color: '#5A2D82', fontWeight: '900' }}>{radius}km</Text>.
+              {'\n'}Check back soon for updates!
             </Text>
             <TouchableOpacity style={styles.resetBtn} onPress={resetDeck} activeOpacity={0.8}>
-              <Text style={styles.resetBtnText}>{fetchLoading ? 'LOADING...' : 'RELOAD FEED'}</Text>
+              <Text style={styles.resetBtnText}>RELOAD FEED</Text>
               <Sparkles size={15} color="#F4C542" strokeWidth={2.5} />
             </TouchableOpacity>
           </View>
         )}
       </View>
-      )}
 
       {/* ─── FILTER MODAL ─── */}
       <FilterModal
@@ -795,35 +655,5 @@ const styles = StyleSheet.create({
         elevation: 8,
       }
     }),
-  },
-
-  // ── Feed Mode Tabs ─────────────────────────────────────────────────
-  feedTabs: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(90,45,130,0.06)',
-    borderRadius: 14,
-    padding: 3,
-    gap: 2,
-  },
-  feedTab: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 11,
-  },
-  feedTabActive: {
-    backgroundColor: '#5A2D82',
-    ...Platform.select({
-      web: { boxShadow: '0px 2px 8px rgba(90,45,130,0.25)' } as any,
-      default: { shadowColor: '#5A2D82', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 3 },
-    }),
-  },
-  feedTabText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: 'rgba(90,45,130,0.5)',
-    letterSpacing: 0.2,
-  },
-  feedTabTextActive: {
-    color: '#F4C542',
   },
 });

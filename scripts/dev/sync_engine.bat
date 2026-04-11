@@ -14,13 +14,13 @@ echo [SYNC] Pornim sincronizarea modulelor pe ramura: !BRANCH!
 echo.
 
 :: 1. AI ENGINE
-call :SYNC_MODULE "ai_engine" "https://github.com/wearwiseteam/wearwise_ai" "!BRANCH!"
+call :SYNC_MODULE "ai_engine" "https://github.com/wearwiseteam/wearwise-ai" "!BRANCH!"
 
 :: 2. BACKEND
-call :SYNC_MODULE "backend" "https://github.com/wearwiseteam/wearwise_backend" "!BRANCH!"
+call :SYNC_MODULE "backend" "https://github.com/wearwiseteam/wearwise-backend" "!BRANCH!"
 
 :: 3. FRONTEND
-call :SYNC_MODULE "frontend" "https://github.com/wearwiseteam/wearwise_frontend" "!BRANCH!"
+call :SYNC_MODULE "frontend" "https://github.com/wearwiseteam/wearwise-frontend" "!BRANCH!"
 
 echo.
 echo [OK] Sincronizare completa pentru toate modulele.

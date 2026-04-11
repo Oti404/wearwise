@@ -30,7 +30,6 @@ import {
   Moon,
   X,
   ChevronRight,
-  Users,
 } from 'lucide-react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -39,23 +38,19 @@ import { useUser } from '@/hooks/useUser';
 import { LocationPicker } from './LocationPicker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useRatings, Rating } from '@/hooks/useRatings';
 
 const { width } = Dimensions.get('window');
-import BASE_URL from '@/config/api';
-const API_URL = BASE_URL;
+const API_URL = 'https://wearwise-api.onrender.com';
 
 export function ProfilePage() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, login, isDarkMode, setDarkMode, clothesUpdateTrigger } = useAppStore();
+  const { user, login, isDarkMode, setDarkMode } = useAppStore();
   const { signOut } = useAuth();
-  const { fetchUserCloset, markAsSold, loading: clothesLoading } = useClothes();
+  const { fetchUserCloset, loading: clothesLoading } = useClothes();
   const { changeAvatar, updateProfile, loading: avatarLoading } = useUser();
-  const { fetchUserRatings, loading: ratingsLoading } = useRatings();
   
   const [closet, setCloset] = useState<ClothingItem[]>([]);
-  const [ratings, setRatings] = useState<Rating[]>([]);
   const [isMapVisible, setIsMapVisible] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -76,35 +71,11 @@ export function ProfilePage() {
   }, [user?.uid]);
 
   useEffect(() => {
-    if (user?.uid) {
-      console.log(`[ProfilePage] Refreshing closet due to trigger: ${clothesUpdateTrigger}`);
-      fetchUserCloset(user.uid).then(setCloset);
-      fetchUserRatings(user.uid).then(setRatings);
-    }
-  }, [user?.uid, clothesUpdateTrigger]);
+    if (user?.uid) fetchUserCloset(user.uid).then(setCloset);
+  }, [user?.uid]);
 
   const handleReList = (itemId: string) => {
     router.push({ pathname: '/resale/[id]', params: { id: itemId } });
-  };
-
-  const handleMarkAsSold = (itemId: string, itemName: string) => {
-    Alert.alert(
-      'Mark as Sold',
-      `Mark "${itemName}" as sold?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Mark Sold', style: 'destructive',
-          onPress: async () => {
-            try {
-              await markAsSold(itemId);
-            } catch (e: any) {
-              Alert.alert('Error', e.message || 'Could not mark as sold.');
-            }
-          },
-        },
-      ]
-    );
   };
 
   const avatarSource = user?.avatarUrl
@@ -339,18 +310,6 @@ export function ProfilePage() {
               <Text style={[styles.statLabel, dk && { color: '#27AE60' }]}>SAVED</Text>
             </View>
           </View>
-
-          <View style={[styles.statDivider, dk && { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
-
-          <View style={styles.statItem}>
-            <View style={[styles.statIconCircle, { backgroundColor: dk ? 'rgba(192,132,252,0.15)' : 'rgba(90,45,130,0.08)' }]}>
-              <Users size={14} color={dk ? '#C084FC' : '#5A2D82'} />
-            </View>
-            <View style={styles.statTextContainer}>
-              <Text style={[styles.statNumber, dk && { color: '#FFFFFF' }]}>{user?.followersCount || 0}</Text>
-              <Text style={[styles.statLabel, dk && { color: '#C084FC' }]}>FOLLOWERS</Text>
-            </View>
-          </View>
         </View>
 
         <View style={styles.rankContainer}>
@@ -403,8 +362,6 @@ export function ProfilePage() {
                     style={[styles.closetItem, dk && { backgroundColor: '#2B2B2B', borderColor: 'rgba(255,255,255,0.05)' }]}
                     activeOpacity={0.8}
                     onPress={() => item.id && router.push({ pathname: '/item/[id]', params: { id: item.id } })}
-                    onLongPress={() => item.id && !isSold && !isBoughtByMe && handleMarkAsSold(item.id, item.name)}
-                    delayLongPress={500}
                   >
                     <View style={styles.imageContainer}>
                       <Image
@@ -470,42 +427,6 @@ export function ProfilePage() {
               </TouchableOpacity>
             </View>
           )}
-          {/* Reviews Section */}
-          <View style={[styles.galleryContainer, { marginTop: 40 }]}>
-            <View style={styles.sectionTitleRow}>
-               <Text style={[styles.sectionTitle, dk && { color: '#FFFFFF' }]}>Customer Reviews</Text>
-               <View style={[styles.countBadge, dk && { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
-                 <Text style={styles.countText}>{ratings.length}</Text>
-               </View>
-            </View>
-
-            {ratings.length > 0 ? (
-              <View style={styles.reviewsList}>
-                {ratings.map((review) => (
-                  <View key={review.id} style={[styles.reviewCard, dk && { backgroundColor: '#2B2B2B', borderColor: 'rgba(255,255,255,0.05)' }]}>
-                    <View style={styles.reviewHeader}>
-                      <View style={styles.starsRow}>
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star key={s} size={12} color={s <= review.rating ? "#F4C542" : "#E5E7EB"} fill={s <= review.rating ? "#F4C542" : "transparent"} />
-                        ))}
-                      </View>
-                      <Text style={styles.reviewDate}>
-                        {review.createdAt?.seconds ? new Date(review.createdAt.seconds * 1000).toLocaleDateString() : 'Recently'}
-                      </Text>
-                    </View>
-                    <Text style={[styles.reviewComment, dk && { color: 'rgba(255,255,255,0.7)' }]}>
-                      {review.comment || 'No comment provided.'}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <View style={[styles.emptyContainer, { paddingVertical: 40 }, dk && { backgroundColor: 'rgba(43,43,43,0.5)', borderColor: 'rgba(255,255,255,0.08)' }]}>
-                <Star size={32} color={dk ? 'rgba(255,255,255,0.1)' : 'rgba(43,43,43,0.1)'} />
-                <Text style={[styles.sectionPlaceholder, dk && { color: 'rgba(255,255,255,0.3)' }]}>No reviews yet.</Text>
-              </View>
-            )}
-          </View>
         </View>
       </ScrollView>
     </View>
@@ -619,14 +540,13 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '900', color: '#2B2B2B', letterSpacing: 0.5, textTransform: 'uppercase' },
   countBadge: { backgroundColor: 'rgba(90,45,130,0.05)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   countText: { fontSize: 8, fontWeight: '900', color: '#5A2D82', letterSpacing: 1 },
-  closetGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 3 },
+  closetGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   closetItem: {
-    width: '32%',
-    marginBottom: 3, backgroundColor: '#FFF', borderRadius: 12, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
+    width: (width - 48 - 16) / 2, marginBottom: 24, backgroundColor: '#FFF', borderRadius: 24, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)',
   },
-  imageContainer: { width: '100%', height: 130, position: 'relative', backgroundColor: '#F3F4F6' },
+  imageContainer: { width: '100%', height: 180, position: 'relative', backgroundColor: '#F3F4F6' },
   closetImage: { width: '100%', height: '100%' },
   cardBadgeContainer: { position: 'absolute', top: 10, right: 10, flexDirection: 'row', gap: 4 },
   cardBadge: { width: 22, height: 22, borderRadius: 8, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
@@ -638,9 +558,9 @@ const styles = StyleSheet.create({
     shadowColor: '#5A2D82', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
   reListText: { fontSize: 8, fontWeight: '900', color: '#F4C542', letterSpacing: 1 },
-  closetItemInfo: { padding: 8 },
-  closetItemName: { fontSize: 11, fontWeight: '700', color: '#2B2B2B', marginBottom: 1 },
-  closetItemPrice: { fontSize: 10, fontWeight: '900', color: '#5A2D82' },
+  closetItemInfo: { padding: 12 },
+  closetItemName: { fontSize: 13, fontWeight: '700', color: '#2B2B2B', marginBottom: 2 },
+  closetItemPrice: { fontSize: 11, fontWeight: '900', color: '#5A2D82' },
   emptyContainer: {
     alignItems: 'center', justifyContent: 'center', paddingVertical: 60,
     backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: 30,
@@ -648,16 +568,4 @@ const styles = StyleSheet.create({
   },
   sectionPlaceholder: { color: 'rgba(43,43,43,0.3)', fontSize: 14, fontWeight: '700', marginTop: 12 },
   emptyActionText: { color: '#5A2D82', fontSize: 12, fontWeight: '900', marginTop: 8, textDecorationLine: 'underline' },
-
-
-  // Reviews
-  reviewsList: { gap: 16, marginBottom: 40 },
-  reviewCard: {
-    backgroundColor: '#FFF', padding: 20, borderRadius: 24,
-    borderWidth: 1, borderColor: 'rgba(90,45,130,0.05)',
-  },
-  reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  starsRow: { flexDirection: 'row', gap: 2 },
-  reviewDate: { fontSize: 10, fontWeight: '700', color: 'rgba(43,43,43,0.3)' },
-  reviewComment: { fontSize: 13, color: '#4B5563', lineHeight: 20, fontWeight: '500' },
 });

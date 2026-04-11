@@ -20,7 +20,6 @@ import { AuthButton } from '@/components/AuthUI';
 import { useClothes } from '@/hooks/useClothes';
 import { LocationPicker } from '@/components/LocationPicker';
 import { useAppStore } from '@/store/useAppStore';
-import BASE_URL from '@/config/api';
 
 const AddItemScreen = () => {
   const insets = useSafeAreaInsets();
@@ -44,79 +43,6 @@ const AddItemScreen = () => {
   const [images, setImages] = useState<string[]>([]);
   const [isMapVisible, setIsMapVisible] = useState(false);
 
-  // ─── AI ANALYSIS STATES ───
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [aiWarning, setAiWarning] = useState<string | null>(null);
-  const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'fail' | null>(null);
-
-  const analyzeImage = async (uri: string) => {
-    if (!uri) return;
-    console.log(`[AI Debug] Starting analysis for URI: ${uri}`);
-    setIsAnalyzing(true);
-    setVerificationStatus('pending');
-    setAiWarning(null);
-
-    try {
-      // ─── UNIVERSAL BLOB FETCH ───
-      // Works on Web (blob: URIs) and Mobile (file: URIs)
-      const responseBlob = await fetch(uri);
-      const blob = await responseBlob.blob();
-
-      const formData = new FormData();
-      const filename = uri.split('/').pop() || 'photo.jpg';
-
-      console.log(`[AI Debug] Creating FormData - Filename: ${filename}, Blob Size: ${blob.size} bytes`);
-      
-      formData.append('image', blob, filename);
-
-      console.log(`[AI Debug] Sending request to: ${BASE_URL}/ai/analyze with method POST`);
-      const response = await fetch(`${BASE_URL}/ai/analyze`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        console.error(`[AI Debug] Server error: ${response.status}`);
-        throw new Error("Backend unavailable");
-      }
-      
-      const result = await response.json();
-      console.log(`[AI Debug] Received results:`, JSON.stringify(result, null, 2));
-      
-      if (result.ai_suggestions) {
-        const isSafe = result.ai_suggestions.is_safe;
-        const isClothing = result.is_clothing;
-        console.log(`[AI Debug] AI Conclusions - Safe: ${isSafe}, Clothing: ${isClothing}`);
-        
-        if (!isSafe || !isClothing) {
-          console.warn("[AI Debug] Verification FAILED");
-          setAiWarning("AI suggests this item might be inappropriate or not clothing.");
-          setVerificationStatus('fail');
-        } else {
-          console.log("[AI Debug] Verification SUCCESS");
-          setVerificationStatus('success');
-        }
-        
-        // Auto-fill
-        console.log(`[AI Debug] Auto-completing: Name='${result.ai_suggestions.name}', Category='${result.ai_suggestions.category}'`);
-        setForm(prev => ({
-          ...prev,
-          name: prev.name || result.ai_suggestions.name,
-          category: result.ai_suggestions.category || prev.category,
-          description: prev.description || result.ai_suggestions.description,
-        }));
-      }
-    } catch (err) {
-      console.error("[AI Debug] Analysis error:", err);
-      setVerificationStatus('fail');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
   // Auto-fill location from user profile
   useEffect(() => {
     if (user?.latitude && user?.longitude) {
@@ -129,26 +55,6 @@ const AddItemScreen = () => {
     }
   }, [user]);
 
-  const takePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'We need camera access to take a photo.');
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-
-    if (!result.canceled) {
-      const uri = result.assets[0].uri;
-      setImages([...images, uri]);
-      analyzeImage(uri);
-    }
-  };
-
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -159,10 +65,6 @@ const AddItemScreen = () => {
     if (!result.canceled) {
       const newImages = result.assets.map(asset => asset.uri);
       setImages([...images, ...newImages]);
-      // Analyze the first newly added image
-      if (newImages.length > 0) {
-        analyzeImage(newImages[0]);
-      }
     }
   };
 
@@ -178,11 +80,6 @@ const AddItemScreen = () => {
 
     if ((form.mode === 'sell' || form.mode === 'both') && !form.price) {
       Alert.alert('Error', 'Please enter the selling price.');
-      return;
-    }
-
-    if (verificationStatus === 'fail') {
-      Alert.alert('Verification Failed', 'AI suggests this item is not clothing. Please use a different photo.');
       return;
     }
 
@@ -206,10 +103,8 @@ const AddItemScreen = () => {
 
   // Progress label shown during image upload
   const getProgressLabel = () => {
-    if (isAnalyzing) return 'AI Scanning...';
-    if (verificationStatus === 'fail') return 'Invalid Item';
     if (uploadProgress) {
-      return `Uploading... ${uploadProgress.current}/${uploadProgress.total}`;
+      return `Uploading images... ${uploadProgress.current}/${uploadProgress.total}`;
     }
     if (loading) return 'Saving...';
     return 'Save Item';
@@ -255,21 +150,14 @@ const AddItemScreen = () => {
           </View>
           
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageScroll} contentContainerStyle={{ paddingRight: 24 }}>
-            <TouchableOpacity style={styles.addPhotoBtn} onPress={takePhoto} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.addPhotoBtn} onPress={pickImage} activeOpacity={0.8}>
               <View style={styles.addPhotoIconBox}>
                 <Camera size={28} color="#5A2D82" />
                 <View style={styles.addPhotoPlus}>
                   <Plus size={12} color="#FAF7F2" strokeWidth={4} />
                 </View>
               </View>
-              <Text style={styles.addPhotoText}>Camera</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.addPhotoBtn} onPress={pickImage} activeOpacity={0.8}>
-              <View style={styles.addPhotoIconBox}>
-                <Plus size={28} color="#5A2D82" />
-              </View>
-              <Text style={styles.addPhotoText}>Gallery</Text>
+              <Text style={styles.addPhotoText}>Add</Text>
             </TouchableOpacity>
             
             {images.map((uri, index) => (
@@ -289,28 +177,6 @@ const AddItemScreen = () => {
 
           {/* Form Content in a Premium Card */}
           <View style={styles.formCard}>
-            {/* AI Status Banner */}
-            {isAnalyzing && (
-              <View style={styles.aiBanner}>
-                <ActivityIndicator size="small" color="#5A2D82" />
-                <Text style={styles.aiBannerText}>AI is scanning your item...</Text>
-              </View>
-            )}
-
-            {aiWarning && (
-              <View style={styles.aiWarningBox}>
-                <Info size={16} color="#E74C3C" />
-                <Text style={styles.aiWarningText}>{aiWarning}</Text>
-              </View>
-            )}
-
-            {verificationStatus === 'success' && (
-              <View style={styles.aiSuccessBox}>
-                <Sparkles size={16} color="#10B981" />
-                <Text style={styles.aiSuccessText}>Perfect! AI verified this as clothing.</Text>
-              </View>
-            )}
-
             {/* Basic Info */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Item Name</Text>
@@ -412,7 +278,7 @@ const AddItemScreen = () => {
             <Text style={styles.smallSectionTitle}>How do you want to offer it?</Text>
             <View style={styles.modeGrid}>
               {renderModeOption('trade', 'Trade', <ArrowRightLeft size={18} color={form.mode === 'trade' ? '#FAF7F2' : '#5A2D82'} />)}
-              {renderModeOption('sell', 'Sell', <DollarSign size={18} color={form.mode === 'sell' ? '#FAF7F2' : '#5A2D82'} />)}
+              {renderModeOption('sell', 'Buy', <DollarSign size={18} color={form.mode === 'sell' ? '#FAF7F2' : '#5A2D82'} />)}
               {renderModeOption('both', 'Both', <Sparkles size={18} color={form.mode === 'both' ? '#FAF7F2' : '#5A2D82'} />)}
               {renderModeOption('donate', 'Donate', <Heart size={18} color={form.mode === 'donate' ? '#FAF7F2' : '#E74C3C'} />)}
             </View>
@@ -455,26 +321,17 @@ const AddItemScreen = () => {
           )}
 
           <TouchableOpacity 
-            style={[
-              styles.saveBtn, 
-              (loading || !!uploadProgress || isAnalyzing || verificationStatus === 'fail') && styles.saveBtnDisabled
-            ]}
+            style={[styles.saveBtn, (loading || !!uploadProgress) && styles.saveBtnDisabled]}
             onPress={handleSave}
-            disabled={loading || !!uploadProgress || isAnalyzing || verificationStatus === 'fail'}
+            disabled={loading || !!uploadProgress}
             activeOpacity={0.8}
           >
-            {loading || !!uploadProgress || isAnalyzing ? (
-               <ActivityIndicator color={verificationStatus === 'fail' ? "#999" : "#5A2D82"} />
+            {loading || !!uploadProgress ? (
+               <ActivityIndicator color="#5A2D82" />
             ) : (
                <>
-                 <Text style={[styles.saveBtnText, verificationStatus === 'fail' && { color: 'rgba(43, 43, 43, 0.4)' }]}>
-                   {getProgressLabel()}
-                 </Text>
-                 {verificationStatus === 'fail' ? (
-                   <X size={18} color="rgba(43, 43, 43, 0.4)" strokeWidth={2.5} />
-                 ) : (
-                   <Sparkles size={18} color="#5A2D82" strokeWidth={2.5} />
-                 )}
+                 <Text style={styles.saveBtnText}>{getProgressLabel()}</Text>
+                 <Sparkles size={18} color="#5A2D82" strokeWidth={2.5} />
                </>
             )}
           </TouchableOpacity>
@@ -490,7 +347,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FAF7F2',
-    overflow: 'hidden', // Prevent horizontal scroll issues
   },
   // BACKGROUND AURA
   auraPurple: {
@@ -565,6 +421,7 @@ const styles = StyleSheet.create({
   imageScroll: {
     flexDirection: 'row',
     marginBottom: 32,
+    marginLeft: -4, // Counterbalance padding for alignment
   },
   addPhotoBtn: {
     width: 100,
@@ -767,7 +624,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   modeOption: {
-    width: '47.5%', // Slightly smaller to accommodate gap on narrow screens
+    width: '48%',
     backgroundColor: '#FAF7F2',
     padding: 16,
     borderRadius: 20,
@@ -868,51 +725,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
     letterSpacing: 1,
-  },
-  aiBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(90, 45, 130, 0.05)',
-    padding: 16,
-    borderRadius: 20,
-    marginBottom: 20,
-  },
-  aiBannerText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#5A2D82',
-  },
-  aiWarningBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(231, 76, 60, 0.1)',
-    padding: 16,
-    borderRadius: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(231, 76, 60, 0.2)',
-  },
-  aiWarningText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#E74C3C',
-    flex: 1,
-  },
-  aiSuccessBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    padding: 16,
-    borderRadius: 20,
-    marginBottom: 20,
-  },
-  aiSuccessText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#10B981',
   },
 });
 

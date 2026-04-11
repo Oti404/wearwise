@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { Platform } from 'react-native';
 import { useAppStore } from '@/store/useAppStore';
-import { supabase } from '@/config/supabase';
+import { supabase } from '@/config/supabaseClient';
 
-import BASE_URL from '@/config/api';
-
-const API_URL = BASE_URL;
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://wearwise-api.onrender.com';
 
 export interface ClothingItem {
   id?: string;
@@ -33,7 +31,6 @@ export interface ClothingItem {
 
 /**
  * Uploads a single local image URI to Supabase Storage.
- * Works universally on Web and Expo Go (Android/iOS).
  */
 const uploadSingleImage = async (
   localUri: string,
@@ -41,39 +38,32 @@ const uploadSingleImage = async (
   index: number
 ): Promise<string> => {
   const timestamp = Date.now();
-  const path = `${userId}/${timestamp}_${index}.jpg`;
-  console.log(`[useClothes] Uploading image ${index + 1} to Supabase storage at: clothes/${path}`);
+  const fileName = `${timestamp}_${index}.jpg`;
+  const filePath = `${userId}/${fileName}`;
+  
+  console.log(`[useClothes] Uploading image to Supabase at: clothes/${filePath}`);
 
   const response = await fetch(localUri);
   const blob = await response.blob();
   
-  const { data, error } = await supabase
-    .storage
+  const { data, error } = await supabase.storage
     .from('clothes')
-    .upload(path, blob, {
-      cacheControl: '3600',
-      upsert: false
+    .upload(filePath, blob, {
+      contentType: 'image/jpeg',
+      upsert: true
     });
-
-  if (error) {
-    console.error('Supabase upload error:', error);
-    throw error;
-  }
+    
+  if (error) throw error;
   
-  const { data: publicUrlData } = supabase
-    .storage
+  const { data: { publicUrl } } = supabase.storage
     .from('clothes')
-    .getPublicUrl(path);
-
-  console.log(`[useClothes] Image ${index + 1} uploaded:`, publicUrlData.publicUrl);
-  return publicUrlData.publicUrl;
+    .getPublicUrl(filePath);
+    
+  return publicUrl;
 };
 
-/**
- * Calculates distance between two points (lat/lng) in km using Haversine formula.
- */
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-  const R = 6371; // Earth radius in km
+  const R = 6371;
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
   const a =
@@ -93,12 +83,7 @@ export const useClothes = () => {
   const user = useAppStore((state) => state.user);
   const setAddingItem = useAppStore((state) => state.setAddingItem);
   const setGlobalUploadProgress = useAppStore((state) => state.setUploadProgress);
-  const refreshClothes = useAppStore((state) => state.refreshClothes);
 
-  /**
-   * Uploads multiple local image URIs to Firebase Storage.
-   * Returns array of public download URLs.
-   */
   const uploadImages = async (localUris: string[], userId: string): Promise<string[]> => {
     const downloadUrls: string[] = [];
     const progress = { current: 0, total: localUris.length };
@@ -107,8 +92,7 @@ export const useClothes = () => {
 
     for (let i = 0; i < localUris.length; i++) {
       const uri = localUris[i];
-      // Skip if it's already a remote URL (not a local file)
-      if (uri.startsWith('http://') || uri.startsWith('https://')) {
+      if (uri.startsWith('http')) {
         downloadUrls.push(uri);
       } else {
         const url = await uploadSingleImage(uri, userId, i);
@@ -134,67 +118,41 @@ export const useClothes = () => {
     setAddingItem(true);
     setError(null);
     try {
-      // Step 1: Upload images to Firebase Storage
-      console.log('[useClothes] Starting image upload. Count:', data.images.length);
       const imageUrls = await uploadImages(data.images, user.uid);
-      console.log('[useClothes] All images uploaded. URLs:', imageUrls);
-
-      // Step 2: Save item to backend/Firestore with real download URLs
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
       const response = await fetch(`${API_URL}/clothes`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.uid,
           ...data,
-          images: imageUrls, // Always use the uploaded URLs
+          images: imageUrls,
         }),
       });
 
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Error saving clothing item.');
-
-      console.log('[useClothes] Clothing item saved successfully:', result.id);
-      
-      // Trigger global refresh for observers (Profile, Explore feed)
-      refreshClothes();
-      
       return result;
     } catch (err: any) {
-      console.error('[useClothes] addClothes error:', err?.message);
       setError(err.message);
       throw err;
     } finally {
       setLoading(false);
       setAddingItem(false);
-      setUploadProgress(null);
-      setGlobalUploadProgress(null);
     }
   };
 
-  const fetchExploreFeed = async (cursor?: string, limit?: number) => {
+  const fetchExploreFeed = async () => {
     setLoading(true);
     setError(null);
     try {
-      let url = `${API_URL}/clothes?excludeUser=${user?.uid || ''}`;
-      if (cursor) url += `&cursor=${cursor}`;
-      if (limit) url += `&limit=${limit}`;
-
-      const response = await fetch(url);
+      const response = await fetch(`${API_URL}/clothes?excludeUser=${user?.uid || ''}`);
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Error loading feed.');
       
-      // result is now { items: ClothingItem[], nextCursor: string | null }
-      let clothes = result.items as ClothingItem[];
-      const nextCursor = result.nextCursor as string | null;
+      let clothes = result.items || []; // Backend returns { items, nextCursor }
 
-      // Calculate distances if user has location set
       if (user?.latitude && user?.longitude) {
-        clothes = clothes.map(item => {
+        clothes = clothes.map((item: any) => {
           if (item.latitude && item.longitude) {
             return {
               ...item,
@@ -205,10 +163,10 @@ export const useClothes = () => {
         });
       }
 
-      return { items: clothes, nextCursor };
+      return clothes;
     } catch (err: any) {
       setError(err.message);
-      return { items: [], nextCursor: null };
+      return [];
     } finally {
       setLoading(false);
     }
@@ -234,20 +192,11 @@ export const useClothes = () => {
     try {
       setLoading(true);
       setError(null);
-      const url = `${API_URL}/clothes/${id}`;
-      console.log(`[useClothes] Fetching item details from: ${url}`);
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        if (response.status === 404) return null;
-        throw new Error('Could not download clothing details.');
-      }
-      
-      const item: ClothingItem = await response.json();
-      return item;
+      const response = await fetch(`${API_URL}/clothes/${id}`);
+      if (!response.ok) return null;
+      return await response.json();
     } catch (err: any) {
-      console.error('Fetch item details error:', err);
-      setError(err.message || 'An unknown error occurred.');
+      setError(err.message);
       return null;
     } finally {
       setLoading(false);
@@ -263,9 +212,8 @@ export const useClothes = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, items }),
       });
-
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Error processing the order.');
+      if (!response.ok) throw new Error(result.error);
       return result;
     } catch (err: any) {
       setError(err.message);
@@ -284,9 +232,8 @@ export const useClothes = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, itemId, updates }),
       });
-
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Error re-listing the item.');
+      if (!response.ok) throw new Error(result.error);
       return result;
     } catch (err: any) {
       setError(err.message);
@@ -310,14 +257,7 @@ export const useClothes = () => {
     }
   };
 
-  const submitRating = async (ratingData: {
-    raterId: string;
-    targetUserId: string;
-    itemId?: string;
-    rating: number;
-    comment?: string;
-    notificationId?: string;
-  }) => {
+  const submitRating = async (ratingData: any) => {
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/ratings`, {
@@ -350,31 +290,6 @@ export const useClothes = () => {
     }
   };
 
-  const markAsSold = async (itemId: string) => {
-    if (!user) throw new Error('Not authenticated.');
-    setLoading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      const response = await fetch(`${API_URL}/clothes/${itemId}/sold`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Could not mark as sold.');
-      refreshClothes();
-      return result;
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return {
     loading,
     error,
@@ -388,6 +303,5 @@ export const useClothes = () => {
     fetchNotifications,
     submitRating,
     fetchUserRatings,
-    markAsSold,
   };
 };

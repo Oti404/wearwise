@@ -33,3 +33,38 @@ test_static/
 
 *.pyc
 *.pyo
+# Python Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python Bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDEs
+.idea/
+.vscode/
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+.git_remote
+
+import_datasets.ipynb
+
+data/
+test_static/
+
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.webp
+
+*.pyc
+*.pyo

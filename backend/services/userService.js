@@ -2,8 +2,7 @@
 
 /**
  * USER SERVICE SQL — WearWise 2.0
- * All user operations go through Drizzle ORM → Supabase (PostgreSQL).
- * Firebase Auth remains the source of truth for authentication only.
+ * All user operations and authentication go through Supabase.
  */
 
 const { db } = require('../drizzle/db');

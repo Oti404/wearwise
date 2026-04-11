@@ -10,15 +10,12 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.wearwiseapp.app",
       "associatedDomains": [
         "applinks:wearwise-web.vercel.app"
-      ],
-      "googleServicesFile": "./GoogleService-Info.plist"
+      ]
     },
     "android": {
       "package": "com.wearwiseapp.app",
-      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#E6F4FE"
