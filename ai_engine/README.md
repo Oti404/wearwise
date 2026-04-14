@@ -1,3 +1,11 @@
+---
+title: WearWise AI Engine
+emoji: 👕
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
 # WearWise AI Engine
 
 Acest modul se ocupă exclusiv de logica de Inteligență Artificială a sistemului WearWise (ex. predicții, recunoaștere imagini, generare texte conexe etc.). De regulă este un serviciu Python dedicat.
