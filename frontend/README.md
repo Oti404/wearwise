@@ -1,52 +1,29 @@
-# Welcome to your Expo app 👋
+# WearWise Frontend
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Acest modul se ocupă de interfața cu utilizatorul pentru WearWise. Folosește React/React Native (sau Next.js, conform stack-ului curent) pentru a livra o experiență client premium.
 
-## Get started
+## Rulare Locală
 
-1. Install dependencies
+Poți rula acest modul independent astfel:
 
+1. Vezi dacă ai instalate pachetele Node:
    ```bash
    npm install
    ```
-
-2. Start the app
-
+2. Asigură-te că fișierul `.env` este prezent în acest folder.
+3. Pornește proiectul:
    ```bash
-   npx expo start
+   npm start
+   # sau npm run dev
    ```
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+Alternativ, din root:
 ```bash
-npm run reset-project
+./run.bat frontend
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-"# wearwise_frontend" 
-"# wearwise-frontend" 
+## Structura Proiectului (Pe Scurt)
+- `components/` -> Componente de UI reutilizabile.
+- `hooks/` -> Custom hooks pentru gestionarea stării sau autentificare.
+- `config/` -> Configurări interne, precum conexiunea cu Supabase.
+- `app.json` -> Configurația aplicației.

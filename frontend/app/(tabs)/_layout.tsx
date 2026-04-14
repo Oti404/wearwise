@@ -19,11 +19,11 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 2. Ecranul de Donații */}
+      {/* 2. Ecranul de Network */}
       <Tabs.Screen
-        name="donations"
+        name="network"
         options={{
-          title: 'Donations',
+          title: 'Network',
         }}
       />
 

@@ -117,7 +117,7 @@ export function DonationsView() {
           {items.length > 0 ? (
             <View style={styles.grid}>
               {items.map((item) => {
-                const imageUrl = item.images && item.images.length > 0 ? item.images[0] : 'https://via.placeholder.com/150';
+                const imageUrl = item.images && item.images.length > 0 ? item.images[0] : 'https://placehold.co/150/png';
                 const imageSource = typeof imageUrl === 'string' ? { uri: imageUrl } : imageUrl;
 
                 return (

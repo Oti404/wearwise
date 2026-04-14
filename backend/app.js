@@ -47,7 +47,7 @@ app.use('/', checkoutRoutes);
 app.use('/', notificationRoutes);
 app.use('/', ratingRoutes);
 app.use('/', aiRoutes);
-app.use('/', followRoutes);
+app.use('/follows', followRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
 app.use((req, res, next) => {

@@ -72,7 +72,7 @@ export default function ItemDetailsScreen() {
       id: item.id!,
       name: item.name,
       price: item.price || 0,
-      image: (item.images && item.images.length > 0) ? item.images[0] : 'https://via.placeholder.com/400',
+      image: (item.images && item.images.length > 0) ? item.images[0] : 'https://placehold.co/400/png',
       seller: item.userId,
       size: item.size,
       distance: item.distance || 0,
@@ -152,7 +152,7 @@ export default function ItemDetailsScreen() {
     );
   }
 
-  const displayImages = item.images?.length > 0 ? item.images : ['https://via.placeholder.com/600'];
+  const displayImages = item.images?.length > 0 ? item.images : ['https://placehold.co/600/png'];
 
   return (
     <View style={styles.container}>
@@ -284,7 +284,14 @@ export default function ItemDetailsScreen() {
 
           {/* OWNER CARD */}
           <Text style={styles.sectionTitle}>Added by</Text>
-          <TouchableOpacity style={styles.ownerCard} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.ownerCard}
+            activeOpacity={0.7}
+            onPress={() => {
+              const ownerId = item.owner?.id || item.userId;
+              if (ownerId) router.push(`/user/${ownerId}`);
+            }}
+          >
              <View style={styles.ownerAvatarWrapper}>
                 {item.owner?.avatarUrl ? (
                   <Image source={{ uri: item.owner.avatarUrl }} style={styles.ownerAvatar} />
