@@ -1,16 +1,19 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: WearWise Sync Console v2.1.2 - Final Robust Edition
+:: WearWise Sync Console v2.2.0
 cd /d "%~dp0"
 
 if exist "scripts\dev\config.bat" call "scripts\dev\config.bat"
 
 :MENU
 cls
+for /f "tokens=*" %%i in ('git branch --show-current') do set "CURRENT_BRANCH=%%i"
 echo ==========================================================
-echo   WEARWISE - GIT and GITHUB CONSOLE (v2.1.2)
+echo   WEARWISE - GIT and GITHUB CONSOLE (v2.2.0)
 echo ==========================================================
+echo.
+echo   Ramura curenta: %CURRENT_BRANCH%
 echo.
 echo   [1] DEVELOPER - Feature Work
 echo   [2] ADMIN     - Releases and Main
@@ -26,12 +29,15 @@ goto :MENU
 
 :DEV_MENU
 cls
+for /f "tokens=*" %%i in ('git branch --show-current') do set "CURRENT_BRANCH=%%i"
 echo ==========================================================
 echo   MENIU DEVELOPER
 echo ==========================================================
 echo.
+echo   Ramura curenta: %CURRENT_BRANCH%
+echo.
 echo   [B] BRANCHES      Lista ramuri
-echo   [S] START         Feature nou
+echo   [S] START         Ramura noua
 echo   [C] SWITCH        Schimba ramura
 echo   [M] COMMIT        Salveaza schimbarile
 echo   [V] VERIFY        Ruleaza TESTE
@@ -65,13 +71,37 @@ pause
 goto :DEV_MENU
 
 :DEV_START
+cls
 echo.
-set /p "fname=Nume Feature: "
-if "%fname%"=="" goto :DEV_MENU
+echo   [1] feature   - Functionalitate noua
+echo   [2] bugfix    - Rezolvare bug
+echo   [3] hotfix    - Patch urgent pe main
+echo   [4] chore     - Mentenanta / refactor
+echo   [5] docs      - Documentatie
+echo   [6] test      - Teste
+echo   [B] Anuleaza
+echo.
+set "btype="
+set "prefix="
+set /p "btype=Tip: "
+if /I "%btype%"=="B" goto :DEV_MENU
+if "%btype%"=="1" set "prefix=feature"
+if "%btype%"=="2" set "prefix=bugfix"
+if "%btype%"=="3" set "prefix=hotfix"
+if "%btype%"=="4" set "prefix=chore"
+if "%btype%"=="5" set "prefix=docs"
+if "%btype%"=="6" set "prefix=test"
+if "%prefix%"=="" goto :DEV_START
+echo.
+set "bname="
+set /p "bname=Nume (%prefix%/???): "
+if "%bname%"=="" goto :DEV_MENU
+set "FULL_BRANCH=%prefix%/%bname%"
 git checkout develop
 git pull origin develop
-git checkout -b "feature/%fname%"
-echo [OK] Esti pe feature/%fname%
+git checkout -b "%FULL_BRANCH%"
+echo.
+echo [OK] Esti pe %FULL_BRANCH%
 pause
 goto :DEV_MENU
 
@@ -85,10 +115,16 @@ for /f "tokens=*" %%b in ('git branch --list') do (
     set "sw[!cnt!]=!br!"
     echo [!cnt!] !br!
 )
-set /p "sc=Numar (Q=Anuleaza): "
+echo.
+set "sc="
+set /p "sc=Numar sau nume (Q=Anuleaza): "
 if /I "%sc%"=="Q" goto :DEV_MENU
-if not "%sc%"=="" (
-    call git checkout %%sw[!sc!]%%
+if "%sc%"=="" goto :DEV_MENU
+echo %sc%| findstr /r "^[0-9]*$" >nul
+if %errorlevel%==0 (
+    git checkout "!sw[%sc%]!"
+) else (
+    git checkout "%sc%"
 )
 pause
 goto :DEV_MENU
@@ -106,6 +142,8 @@ goto :DEV_MENU
 :DEV_PUSH
 echo.
 for /f "tokens=*" %%i in ('git branch --show-current') do set "CB=%%i"
+echo [GIT] Pull + Push pe %CB%...
+git pull origin "%CB%"
 git push origin "%CB%"
 pause
 goto :DEV_MENU
@@ -143,10 +181,17 @@ goto :MENU
 
 :ADMIN_MENU
 cls
-echo [1] MERGE develop to releases
-echo [2] MERGE releases to main
-echo [3] CREATE TAG
-echo [B] BACK
+for /f "tokens=*" %%i in ('git branch --show-current') do set "CURRENT_BRANCH=%%i"
+echo ==========================================================
+echo   MENIU ADMIN
+echo ==========================================================
+echo.
+echo   Ramura curenta: %CURRENT_BRANCH%
+echo.
+echo   [1] CREATE RELEASE  develop -^> releases/wearwise_X-Y-Z
+echo   [2] SHIP TO MAIN    releases/wearwise_X-Y-Z -^> main
+echo   [3] CREATE TAG
+echo   [B] BACK
 echo.
 set /p "ac=Selecteaza: "
 if "%ac%"=="1" goto :ADM_DEV_TO_REL
@@ -156,26 +201,53 @@ if /I "%ac%"=="B" goto :MENU
 goto :ADMIN_MENU
 
 :ADM_DEV_TO_REL
-git checkout releases
-git pull origin releases
-git merge develop
-git push origin releases
+echo.
+set "ver="
+set /p "ver=Version (ex: 2-1-0): "
+if "%ver%"=="" goto :ADMIN_MENU
+set "REL_BRANCH=releases/wearwise_%ver%"
+echo.
+echo [GIT] Cream %REL_BRANCH% din develop...
+git checkout develop
+git pull origin develop
+git checkout -b "%REL_BRANCH%"
+git push origin "%REL_BRANCH%"
+echo.
+echo [OK] Branch %REL_BRANCH% creat si trimis pe GitHub.
 pause
 goto :ADMIN_MENU
 
 :ADM_REL_TO_MAIN
+echo.
+set "ver="
+set /p "ver=Version (ex: 2-1-0): "
+if "%ver%"=="" goto :ADMIN_MENU
+set "REL_BRANCH=releases/wearwise_%ver%"
+echo.
+echo [GIT] Mergem %REL_BRANCH% -^> main...
 git checkout main
 git pull origin main
-git merge releases
+git merge "%REL_BRANCH%"
+if errorlevel 1 (
+    echo [EROARE] Conflict la merge! Rezolva manual.
+    git merge --abort
+    pause
+    goto :ADMIN_MENU
+)
+git pull origin main --rebase
 git push origin main
+echo [OK] main actualizat.
 pause
 goto :ADMIN_MENU
 
 :ADM_TAG
-set /p "v=Versiune: "
-set "TAG=wearwise-%v%"
-git tag -a "%TAG%" -m "Version %v%"
+echo.
+set "ver="
+set /p "ver=Version (ex: 2.1.0): "
+if "%ver%"=="" goto :ADMIN_MENU
+set "TAG=wearwise-%ver%"
+git tag -a "%TAG%" -m "Release %ver%"
 git push origin "%TAG%"
-call scripts\dev\sync_engine.bat "releases"
+echo [OK] Tag %TAG% creat si trimis.
 pause
 goto :ADMIN_MENU
