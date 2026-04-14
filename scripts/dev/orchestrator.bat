@@ -97,7 +97,7 @@ call :WAIT_COUNTDOWN 5
 call :CHECK_PORT %BACKEND_PORT%
 if "!PORT_BUSY!"=="1" taskkill /F /PID !BUSY_PID! >nul 2>&1
 :: Use localhost for AI_ENGINE_URL in the backend process
-call :START_SERVICE "BACKEND" "0C" "%BACKEND_DIR%" "set AI_ENGINE_URL=http://localhost:%AI_PORT% && node server.js"
+call :START_SERVICE "BACKEND" "0C" "%BACKEND_DIR%" "set AI_ENGINE_URL=http://localhost:%AI_PORT%&& node server.js"
 call :WAIT_COUNTDOWN 3
 call :START_SERVICE "FRONTEND" "09" "%FRONTEND_DIR%" "set EXPO_PUBLIC_API_URL=http://localhost:%BACKEND_PORT%&& npx expo start"
 call :WAIT_COUNTDOWN 2
