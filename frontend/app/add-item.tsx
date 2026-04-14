@@ -21,7 +21,7 @@ import { useClothes } from '@/hooks/useClothes';
 import { LocationPicker } from '@/components/LocationPicker';
 import { useAppStore } from '@/store/useAppStore';
 
-const AI_URL = process.env.EXPO_PUBLIC_AI_URL;
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 type ImageValidationStatus = 'idle' | 'validating' | 'valid' | 'invalid';
 
@@ -86,12 +86,12 @@ const AddItemScreen = () => {
       if (Platform.OS === 'web') {
         const res = await fetch(uri);
         const blob = await res.blob();
-        formData.append('file', blob, `image_${index}.jpg`);
+        formData.append('image', blob, `image_${index}.jpg`);
       } else {
-        formData.append('file', { uri, type: 'image/jpeg', name: `image_${index}.jpg` } as any);
+        formData.append('image', { uri, type: 'image/jpeg', name: `image_${index}.jpg` } as any);
       }
 
-      const aiRes = await fetch(`${AI_URL}/classify/file`, {
+      const aiRes = await fetch(`${API_URL}/ai/analyze`, {
         method: 'POST',
         body: formData,
       });
