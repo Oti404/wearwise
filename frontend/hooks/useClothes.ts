@@ -119,9 +119,14 @@ export const useClothes = () => {
     setError(null);
     try {
       const imageUrls = await uploadImages(data.images, user.uid);
+
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(`${API_URL}/clothes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           userId: user.uid,
           ...data,
