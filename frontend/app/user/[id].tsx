@@ -29,6 +29,8 @@ import { useFollow } from '@/hooks/useFollow';
 import { useClothes, ClothingItem } from '@/hooks/useClothes';
 import { useAppStore } from '@/store/useAppStore';
 
+type Rating = { rating: number; comment?: string; createdAt?: string; raterName?: string };
+
 const { width } = Dimensions.get('window');
 
 export default function PublicProfileScreen() {
@@ -38,10 +40,11 @@ export default function PublicProfileScreen() {
   const dk = useAppStore((state) => state.isDarkMode);
   
   const { fetchPublicProfile, followUser, unfollowUser, checkFollowStatus, loading: followLoading } = useFollow();
-  const { fetchUserCloset } = useClothes();
+  const { fetchUserCloset, fetchUserRatings } = useClothes();
 
   const [profile, setProfile] = useState<any>(null);
   const [closet, setCloset] = useState<ClothingItem[]>([]);
+  const [ratings, setRatings] = useState<Rating[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -54,10 +57,11 @@ export default function PublicProfileScreen() {
   const loadProfileData = async () => {
     setLoading(true);
     try {
-      const [profileData, closetData, followStatus] = await Promise.all([
+      const [profileData, closetData, followStatus, ratingsData] = await Promise.all([
         fetchPublicProfile(targetUserId!),
         fetchUserCloset(targetUserId!),
-        checkFollowStatus(targetUserId!)
+        checkFollowStatus(targetUserId!),
+        fetchUserRatings(targetUserId!),
       ]);
 
       if (profileData) {
@@ -65,6 +69,7 @@ export default function PublicProfileScreen() {
       }
       setCloset(closetData || []);
       setIsFollowing(followStatus);
+      setRatings(Array.isArray(ratingsData) ? ratingsData : []);
     } catch (err) {
       console.error('[PublicProfile] Load error:', err);
     } finally {
@@ -141,8 +146,12 @@ export default function PublicProfileScreen() {
 
             <View style={styles.ratingBadge}>
               <Star size={10} color="#F4C542" fill="#F4C542" />
-              <Text style={styles.ratingText}>{profile.rating || '4.9'}</Text>
-              <Text style={styles.reviewCount}>({profile.reviewCount || 0} reviews)</Text>
+              <Text style={styles.ratingText}>
+                {ratings.length > 0
+                  ? (ratings.reduce((s, r) => s + r.rating, 0) / ratings.length).toFixed(1)
+                  : '—'}
+              </Text>
+              <Text style={styles.reviewCount}>({ratings.length} reviews)</Text>
             </View>
           </View>
         </View>
@@ -248,6 +257,30 @@ export default function PublicProfileScreen() {
           )}
         </View>
 
+        {/* Reviews Section */}
+        {ratings.length > 0 && (
+          <View style={styles.reviewsSection}>
+            <Text style={[styles.sectionTitle, dk && styles.textDark]}>Reviews</Text>
+            {ratings.slice(0, 5).map((r, i) => (
+              <View key={i} style={[styles.reviewCard, dk && styles.cardDark]}>
+                <View style={styles.reviewHeader}>
+                  <View style={styles.reviewStars}>
+                    {[1,2,3,4,5].map((s) => (
+                      <Star key={s} size={12} color="#F4C542" fill={s <= r.rating ? '#F4C542' : 'transparent'} />
+                    ))}
+                  </View>
+                  {r.raterName && (
+                    <Text style={styles.reviewerName}>{r.raterName}</Text>
+                  )}
+                </View>
+                {r.comment ? (
+                  <Text style={[styles.reviewComment, dk && { color: 'rgba(255,255,255,0.7)' }]}>{r.comment}</Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        )}
+
       </ScrollView>
     </View>
   );
@@ -302,4 +335,10 @@ const styles = StyleSheet.create({
   itemPrice: { fontSize: 12, fontWeight: '900', color: '#5A2D82' },
   emptyCloset: { alignItems: 'center', paddingVertical: 40, backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: 24, borderStyle: 'dashed', borderWidth: 1, borderColor: '#5A2D82' },
   emptyClosetText: { marginTop: 12, color: 'gray', fontSize: 13 },
+  reviewsSection: { paddingHorizontal: 20, marginTop: 32, paddingBottom: 20 },
+  reviewCard: { backgroundColor: '#FFF', borderRadius: 16, padding: 14, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1 },
+  reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  reviewStars: { flexDirection: 'row', gap: 2 },
+  reviewerName: { fontSize: 11, fontWeight: '700', color: 'gray' },
+  reviewComment: { fontSize: 13, color: '#2B2B2B', lineHeight: 18 },
 });

@@ -33,11 +33,12 @@ export default function ItemDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { fetchItemDetails, loading, error: apiError } = useClothes();
+  const { fetchItemDetails, fetchUserRatings, loading, error: apiError } = useClothes();
   const addToCart = useAppStore((state) => state.addToCart);
   const cart = useAppStore((state) => state.cart);
 
   const [item, setItem] = useState<ClothingItem | null>(null);
+  const [ownerRatings, setOwnerRatings] = useState<{ rating: number }[]>([]);
   const [notFound, setNotFound] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const isInCart = cart.some((c) => String(c.id) === String(id));
@@ -52,8 +53,12 @@ export default function ItemDetailsScreen() {
     const data = await fetchItemDetails(id);
     if (data) {
       setItem(data);
+      const ownerId = data.owner?.id || data.userId;
+      if (ownerId) {
+        const ratingData = await fetchUserRatings(ownerId);
+        setOwnerRatings(Array.isArray(ratingData) ? ratingData : []);
+      }
     } else {
-      // If we got null and there's no apiError, it was likely a 404
       setNotFound(true);
     }
   };
@@ -310,7 +315,11 @@ export default function ItemDetailsScreen() {
                 </Text>
                 <View style={styles.ownerRatingRow}>
                    <Star size={12} color="#F4C542" fill="#F4C542" />
-                   <Text style={styles.ownerRatingText}>4.9 (24 completed trades)</Text>
+                   <Text style={styles.ownerRatingText}>
+                     {ownerRatings.length > 0
+                       ? `${(ownerRatings.reduce((s, r) => s + r.rating, 0) / ownerRatings.length).toFixed(1)} (${ownerRatings.length} reviews)`
+                       : 'No reviews yet'}
+                   </Text>
                 </View>
              </View>
              <ChevronLeft size={20} color="#5A2D82" style={{ transform: [{ rotate: '180deg' }] }} opacity={0.3} />
