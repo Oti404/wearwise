@@ -177,7 +177,7 @@ export function ProfilePage() {
         dk && { backgroundColor: '#1A1A2E', borderBottomColor: 'rgba(255,255,255,0.05)' },
       ]}>
         <View style={styles.headerContent}>
-          <View style={styles.userInfoRow}>
+          <View style={[styles.userInfoRow, { flex: 1 }]}>
             <View style={styles.avatarWrapper}>
               <View style={styles.avatarGradient}>
                 <View style={styles.avatarInner}>
@@ -203,20 +203,20 @@ export function ProfilePage() {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.nameContainer}>
+            <View style={[styles.nameContainer, { flex: 1 }]}>
               {isProfileLoading ? (
                 <ActivityIndicator size="small" color="#5A2D82" />
               ) : (
-                <View style={styles.nameSection}>
-                  <Text style={[styles.userName, dk && { color: '#FFFFFF' }]}>
+                <View style={[styles.nameSection, { flexShrink: 1 }]}>
+                  <Text style={[styles.userName, dk && { color: '#FFFFFF' }]} numberOfLines={1}>
                     {user?.firstName && user?.lastName
                       ? `${user.firstName} ${user.lastName}`
                       : (user?.email?.split('@')[0] || 'WearWise User')}
                   </Text>
                   <View style={styles.reputationRow}>
-                    <View style={[styles.locationContainer, dk && { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+                    <View style={[styles.locationContainer, dk && { backgroundColor: 'rgba(255,255,255,0.06)' }, { flexShrink: 1 }]}>
                       <MapPin size={12} color="#F4C542" />
-                      <Text style={[styles.userLocation, dk && { color: '#FFFFFF' }]}>
+                      <Text style={[styles.userLocation, dk && { color: '#FFFFFF' }]} numberOfLines={1}>
                         {user?.city || user?.address || 'Location not set'}
                       </Text>
                     </View>
@@ -341,7 +341,7 @@ export function ProfilePage() {
 
         <View style={styles.galleryContainer}>
           <View style={styles.sectionTitleRow}>
-            <Text style={[styles.sectionTitle, dk && { color: '#FFFFFF' }]}>My Circular Wardrobe ♻️</Text>
+            <Text style={[styles.sectionTitle, dk && { color: '#FFFFFF' }]}>My Wardrobe ♻️</Text>
             <View style={[styles.countBadge, dk && { backgroundColor: 'rgba(192,132,252,0.12)' }]}>
               <Text style={[styles.countText, dk && { color: '#C084FC' }]}>{closet.length} ITEMS</Text>
             </View>

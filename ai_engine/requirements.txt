@@ -1,4 +1,4 @@
-python-dotenv
+.python-dotenv
 fastapi
 uvicorn[standard]
 pillow
