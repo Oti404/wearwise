@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
+  Modal,
   Platform,
   StyleSheet,
   Text,
@@ -275,12 +276,6 @@ const SwipeView = () => {
           </View>
         )}
 
-        {/* Radius expander */}
-        {radiusVisible && (
-          <View style={styles.radiusExpander}>
-            <RadiusSelector />
-          </View>
-        )}
 
         {/* Background Upload Progress */}
         {addingItem && (
@@ -418,6 +413,35 @@ const SwipeView = () => {
           />
         )}
       </View>
+
+      {/* ─── RADIUS MODAL ─── */}
+      <Modal
+        visible={radiusVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setRadiusVisible(false)}
+      >
+        <View style={styles.radiusOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={() => setRadiusVisible(false)}
+          />
+          <View style={[styles.radiusSheet, dk && { backgroundColor: '#2B2B2B' }]}>
+            <View style={[styles.radiusHandle, dk && { backgroundColor: 'rgba(255,255,255,0.15)' }]} />
+            <View style={styles.radiusSheetHeader}>
+              <Text style={[styles.radiusSheetTitle, dk && { color: '#FFFFFF' }]}>Search Radius</Text>
+              <TouchableOpacity
+                style={[styles.radiusCloseBtn, dk && { backgroundColor: '#1E1E1E', borderColor: 'rgba(255,255,255,0.06)' }]}
+                onPress={() => setRadiusVisible(false)}
+              >
+                <XIcon size={20} color={dk ? 'rgba(255,255,255,0.5)' : '#9CA3AF'} />
+              </TouchableOpacity>
+            </View>
+            <RadiusSelector />
+          </View>
+        </View>
+      </Modal>
 
       {/* ─── FILTER MODAL ─── */}
       <FilterModal
@@ -599,10 +623,52 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#FFF',
   },
-  radiusExpander: {
-    marginTop: 12,
-    borderRadius: 20,
-    overflow: 'hidden',
+  radiusOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  radiusSheet: {
+    backgroundColor: '#FAF7F2',
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    paddingHorizontal: 24,
+    paddingBottom: 44,
+    paddingTop: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.12, shadowRadius: 20 },
+      android: { elevation: 20 },
+      web: { boxShadow: '0px -8px 20px rgba(0,0,0,0.12)' } as any,
+    }),
+  },
+  radiusHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(43,43,43,0.15)',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  radiusSheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  radiusSheetTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1A1A2E',
+  },
+  radiusCloseBtn: {
+    width: 44,
+    height: 44,
+    backgroundColor: '#FFF',
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(90,45,130,0.05)',
   },
   bgUploadBar: {
     marginTop: 12,
