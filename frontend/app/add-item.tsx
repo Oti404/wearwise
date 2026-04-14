@@ -96,7 +96,10 @@ const AddItemScreen = () => {
         body: formData,
       });
 
-      if (!aiRes.ok) throw new Error(`AI service error (${aiRes.status})`);
+      if (!aiRes.ok) {
+        const errBody = await aiRes.json().catch(() => ({}));
+        throw new Error(errBody.message || `Server error (${aiRes.status})`);
+      }
 
       const result = await aiRes.json();
       const isClothing = result.is_clothing === true;
@@ -127,10 +130,10 @@ const AddItemScreen = () => {
         }));
         setAutoFilled(true);
       }
-    } catch {
+    } catch (err: any) {
       setImageValidations(prev => {
         const next = [...prev];
-        next[index] = { status: 'invalid', error: 'Could not reach AI service' };
+        next[index] = { status: 'invalid', error: err.message || 'Could not reach AI service' };
         return next;
       });
     }
