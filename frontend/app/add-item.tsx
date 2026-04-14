@@ -13,13 +13,22 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Camera, Plus, X, Tag, Ruler, Info, DollarSign, ArrowRightLeft, Sparkles, Heart, MapPin } from 'lucide-react-native';
+import { Camera, Plus, X, Tag, Ruler, Info, DollarSign, ArrowRightLeft, Sparkles, Heart, MapPin, Check, AlertCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { AuthButton } from '@/components/AuthUI';
 import { useClothes } from '@/hooks/useClothes';
 import { LocationPicker } from '@/components/LocationPicker';
 import { useAppStore } from '@/store/useAppStore';
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+type ImageValidationStatus = 'idle' | 'validating' | 'valid' | 'invalid';
+
+interface ImageValidation {
+  status: ImageValidationStatus;
+  error?: string;
+}
 
 const AddItemScreen = () => {
   const insets = useSafeAreaInsets();
@@ -41,6 +50,9 @@ const AddItemScreen = () => {
   });
 
   const [images, setImages] = useState<string[]>([]);
+  const [imageValidations, setImageValidations] = useState<ImageValidation[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [autoFilled, setAutoFilled] = useState(false);
   const [isMapVisible, setIsMapVisible] = useState(false);
 
   // Auto-fill location from user profile
@@ -55,6 +67,78 @@ const AddItemScreen = () => {
     }
   }, [user]);
 
+  const allImagesValid = images.length > 0
+    && imageValidations.length === images.length
+    && imageValidations.every(v => v.status === 'valid');
+  const anyValidating = imageValidations.some(v => v.status === 'validating');
+  const anyInvalid = imageValidations.some(v => v.status === 'invalid');
+  const canSave = allImagesValid && !isSaving && !loading && !!form.name && !!form.mode;
+
+  const validateImage = async (uri: string, index: number) => {
+    setImageValidations(prev => {
+      const next = [...prev];
+      next[index] = { status: 'validating' };
+      return next;
+    });
+
+    try {
+      const formData = new FormData();
+      if (Platform.OS === 'web') {
+        const res = await fetch(uri);
+        const blob = await res.blob();
+        formData.append('image', blob, `image_${index}.jpg`);
+      } else {
+        formData.append('image', { uri, type: 'image/jpeg', name: `image_${index}.jpg` } as any);
+      }
+
+      const aiRes = await fetch(`${API_URL}/ai/analyze`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!aiRes.ok) {
+        const errBody = await aiRes.json().catch(() => ({}));
+        throw new Error(errBody.message || `Server error (${aiRes.status})`);
+      }
+
+      const result = await aiRes.json();
+      const isClothing = result.is_clothing === true;
+      const isSafe = result.ai_suggestions?.is_safe === true;
+      const isValid = isClothing && isSafe;
+
+      setImageValidations(prev => {
+        const next = [...prev];
+        next[index] = {
+          status: isValid ? 'valid' : 'invalid',
+          error: !isClothing
+            ? 'Not a clothing item'
+            : !isSafe
+            ? 'Image content not allowed'
+            : undefined,
+        };
+        return next;
+      });
+
+      // Auto-fill form fields from the first valid image
+      if (isValid && result.ai_suggestions && !autoFilled) {
+        const { name, category, description } = result.ai_suggestions;
+        setForm(prev => ({
+          ...prev,
+          name: prev.name || name || '',
+          category: category || prev.category,
+          description: prev.description || description || '',
+        }));
+        setAutoFilled(true);
+      }
+    } catch (err: any) {
+      setImageValidations(prev => {
+        const next = [...prev];
+        next[index] = { status: 'invalid', error: err.message || 'Could not reach AI service' };
+        return next;
+      });
+    }
+  };
+
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -63,13 +147,16 @@ const AddItemScreen = () => {
     });
 
     if (!result.canceled) {
-      const newImages = result.assets.map(asset => asset.uri);
-      setImages([...images, ...newImages]);
+      const newUris = result.assets.map(a => a.uri);
+      const startIndex = images.length;
+      setImages(prev => [...prev, ...newUris]);
+      newUris.forEach((uri, i) => validateImage(uri, startIndex + i));
     }
   };
 
   const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
+    setImages(prev => prev.filter((_, i) => i !== index));
+    setImageValidations(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSave = async () => {
@@ -77,36 +164,36 @@ const AddItemScreen = () => {
       Alert.alert('Error', 'Please add at least one photo and a name for the product.');
       return;
     }
-
     if ((form.mode === 'sell' || form.mode === 'both') && !form.price) {
       Alert.alert('Error', 'Please enter the selling price.');
       return;
     }
 
+    setIsSaving(true);
     try {
       const { address, ...cleanForm } = form;
-      addClothes({
+      await addClothes({
         ...cleanForm,
-        images, // local URIs — useClothes will upload them to Firebase Storage
+        images,
         price: form.price ? parseFloat(form.price) : null,
-      }).catch(err => {
-        console.error('[AddItem] Background save failed:', err);
-        // We could show a global notification here if needed
       });
-      
-      // Close immediately for instant feedback
-      router.back();
+      router.replace('/(tabs)/profile');
     } catch (err: any) {
       Alert.alert('Error saving', err.message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  // Progress label shown during image upload
-  const getProgressLabel = () => {
-    if (uploadProgress) {
-      return `Uploading images... ${uploadProgress.current}/${uploadProgress.total}`;
-    }
-    if (loading) return 'Saving...';
+  const getSaveBtnLabel = () => {
+    if (uploadProgress) return `Uploading... ${uploadProgress.current}/${uploadProgress.total}`;
+    if (isSaving || loading) return 'Saving...';
+    if (images.length === 0) return 'Add an image to continue';
+    if (anyValidating) return 'Validating images...';
+    if (anyInvalid) return 'Fix invalid images to continue';
+    if (!allImagesValid) return 'Validate images to continue';
+    if (!form.name) return 'Add an item name to continue';
+    if (!form.mode) return 'Select a listing mode';
     return 'Save Item';
   };
 
@@ -148,7 +235,33 @@ const AddItemScreen = () => {
             <Text style={styles.sectionTitle}>Photos</Text>
             <Text style={styles.sectionCount}>{images.length} / 5</Text>
           </View>
-          
+
+          {/* Validation Status Banner */}
+          <View style={[
+            styles.statusBanner,
+            anyValidating && styles.statusBannerValidating,
+            anyInvalid && styles.statusBannerInvalid,
+            allImagesValid && styles.statusBannerValid,
+          ]}>
+            {anyValidating && <ActivityIndicator size="small" color="#5A2D82" style={{ marginRight: 8 }} />}
+            {anyInvalid && <AlertCircle size={14} color="#E74C3C" style={{ marginRight: 8 }} />}
+            {allImagesValid && <Check size={14} color="#27AE60" strokeWidth={3} style={{ marginRight: 8 }} />}
+            <Text style={[
+              styles.statusBannerText,
+              anyValidating && { color: '#5A2D82' },
+              anyInvalid && { color: '#E74C3C' },
+              allImagesValid && { color: '#27AE60' },
+            ]}>
+              {images.length === 0
+                ? 'Upload at least one image to continue'
+                : anyValidating
+                ? 'Analyzing your images...'
+                : anyInvalid
+                ? 'One or more images are invalid'
+                : 'All images validated'}
+            </Text>
+          </View>
+
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageScroll} contentContainerStyle={{ paddingRight: 24 }}>
             <TouchableOpacity style={styles.addPhotoBtn} onPress={pickImage} activeOpacity={0.8}>
               <View style={styles.addPhotoIconBox}>
@@ -163,17 +276,52 @@ const AddItemScreen = () => {
             {images.map((uri, index) => (
               <View key={index} style={styles.imageWrapper}>
                 <Image source={{ uri }} style={styles.previewImage} />
+
+                {/* Validation overlay */}
+                {imageValidations[index]?.status === 'validating' && (
+                  <View style={styles.imgOverlayValidating}>
+                    <ActivityIndicator size="small" color="#FFF" />
+                  </View>
+                )}
+                {imageValidations[index]?.status === 'valid' && (
+                  <View style={styles.imgBadgeValid}>
+                    <Check size={10} color="#FFF" strokeWidth={3} />
+                  </View>
+                )}
+                {imageValidations[index]?.status === 'invalid' && (
+                  <View style={styles.imgOverlayInvalid}>
+                    <X size={14} color="#FFF" strokeWidth={3} />
+                    <Text style={styles.imgOverlayError} numberOfLines={2}>
+                      {imageValidations[index].error || 'Invalid image'}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.retryBtn}
+                      onPress={() => validateImage(images[index], index)}
+                    >
+                      <Text style={styles.retryBtnText}>RETRY</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
                 <TouchableOpacity style={styles.removePhotoBtn} onPress={() => removeImage(index)}>
                   <X size={10} color="#FFF" strokeWidth={3} />
                 </TouchableOpacity>
                 {index === 0 && (
-                   <View style={styles.mainPhotoBadge}>
-                      <Text style={styles.mainPhotoText}>COVER</Text>
-                   </View>
+                  <View style={styles.mainPhotoBadge}>
+                    <Text style={styles.mainPhotoText}>COVER</Text>
+                  </View>
                 )}
               </View>
             ))}
           </ScrollView>
+
+          {/* AI auto-fill notice */}
+          {autoFilled && (
+            <View style={styles.autoFillNote}>
+              <Sparkles size={12} color="#5A2D82" />
+              <Text style={styles.autoFillNoteText}>Fields pre-filled by AI — feel free to edit</Text>
+            </View>
+          )}
 
           {/* Form Content in a Premium Card */}
           <View style={styles.formCard}>
@@ -320,19 +468,22 @@ const AddItemScreen = () => {
             </View>
           )}
 
-          <TouchableOpacity 
-            style={[styles.saveBtn, (loading || !!uploadProgress) && styles.saveBtnDisabled]}
+          <TouchableOpacity
+            style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
             onPress={handleSave}
-            disabled={loading || !!uploadProgress}
+            disabled={!canSave}
             activeOpacity={0.8}
           >
-            {loading || !!uploadProgress ? (
-               <ActivityIndicator color="#5A2D82" />
+            {isSaving || loading || !!uploadProgress ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <ActivityIndicator color="#5A2D82" />
+                <Text style={styles.saveBtnText}>{getSaveBtnLabel()}</Text>
+              </View>
             ) : (
-               <>
-                 <Text style={styles.saveBtnText}>{getProgressLabel()}</Text>
-                 <Sparkles size={18} color="#5A2D82" strokeWidth={2.5} />
-               </>
+              <>
+                <Text style={styles.saveBtnText}>{getSaveBtnLabel()}</Text>
+                {canSave && <Sparkles size={18} color="#5A2D82" strokeWidth={2.5} />}
+              </>
             )}
           </TouchableOpacity>
           
@@ -700,6 +851,103 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#F4C542',
     borderRadius: 4,
+  },
+  statusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(43,43,43,0.04)',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(43,43,43,0.06)',
+  },
+  statusBannerValidating: {
+    backgroundColor: 'rgba(90,45,130,0.06)',
+    borderColor: 'rgba(90,45,130,0.12)',
+  },
+  statusBannerValid: {
+    backgroundColor: 'rgba(39,174,96,0.06)',
+    borderColor: 'rgba(39,174,96,0.15)',
+  },
+  statusBannerInvalid: {
+    backgroundColor: 'rgba(231,76,60,0.06)',
+    borderColor: 'rgba(231,76,60,0.15)',
+  },
+  statusBannerText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(43,43,43,0.45)',
+  },
+  imgOverlayValidating: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(26,26,46,0.55)',
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imgBadgeValid: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#27AE60',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFF',
+  },
+  imgOverlayInvalid: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(231,76,60,0.85)',
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    gap: 4,
+  },
+  imgOverlayError: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FFF',
+    textAlign: 'center',
+    lineHeight: 13,
+  },
+  retryBtn: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+    marginTop: 2,
+  },
+  retryBtnText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#FFF',
+    letterSpacing: 0.5,
+  },
+  autoFillNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(90,45,130,0.05)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(90,45,130,0.1)',
+  },
+  autoFillNoteText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5A2D82',
   },
   saveBtn: {
     marginTop: 32,
