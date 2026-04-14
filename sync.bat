@@ -240,6 +240,19 @@ if errorlevel 1 (
 git pull origin main --rebase
 git push origin main
 echo [OK] main actualizat.
+echo.
+echo [GIT] Sincronizam develop cu main...
+git checkout develop
+git pull origin develop
+git merge main
+if errorlevel 1 (
+    echo [EROARE] Conflict la merge main -^> develop! Rezolva manual.
+    git merge --abort
+    pause
+    goto :ADMIN_MENU
+)
+git push origin develop
+echo [OK] develop sincronizat cu main.
 pause
 goto :ADMIN_MENU
 
