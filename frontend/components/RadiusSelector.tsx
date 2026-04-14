@@ -18,7 +18,7 @@ const RadiusSelector = () => {
           <View style={styles.iconBox}>
             <Target size={14} color="#5A2D82" />
           </View>
-          <Text style={styles.labelText}>Rază de căutare</Text>
+          <Text style={styles.labelText}>Search Radius</Text>
         </View>
         <View style={styles.valueBadge}>
           <Text style={styles.valueText}>{radius}</Text>
@@ -43,7 +43,7 @@ const RadiusSelector = () => {
       
       {/* Scale indicators */}
       <View style={styles.scaleContainer}>
-        <Text style={styles.scaleText}>Aproape</Text>
+        <Text style={styles.scaleText}>Nearby</Text>
         <View style={styles.scaleDivider} />
         <Text style={styles.scaleText}>20km</Text>
       </View>

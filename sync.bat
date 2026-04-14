@@ -80,6 +80,7 @@ echo   [3] hotfix    - Patch urgent pe main
 echo   [4] chore     - Mentenanta / refactor
 echo   [5] docs      - Documentatie
 echo   [6] test      - Teste
+echo   [7] ui        - Modificari interfata utilizator
 echo   [B] Anuleaza
 echo.
 set "btype="
@@ -92,6 +93,7 @@ if "%btype%"=="3" set "prefix=hotfix"
 if "%btype%"=="4" set "prefix=chore"
 if "%btype%"=="5" set "prefix=docs"
 if "%btype%"=="6" set "prefix=test"
+if "%btype%"=="7" set "prefix=ui"
 if "%prefix%"=="" goto :DEV_START
 echo.
 set "bname="
