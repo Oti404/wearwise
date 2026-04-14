@@ -196,6 +196,7 @@ echo   [2] SHIP TO MAIN    releases/wearwise_X-Y-Z -^> main
 echo   [3] CREATE TAG
 echo   [B] BACK
 echo.
+set "ac="
 set /p "ac=Selecteaza: "
 if "%ac%"=="1" goto :ADM_DEV_TO_REL
 if "%ac%"=="2" goto :ADM_REL_TO_MAIN
