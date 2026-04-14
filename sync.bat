@@ -1,5 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
+title WearWise Sync Console v2.2.0
 
 :: WearWise Sync Console v2.2.0
 cd /d "%~dp0"
