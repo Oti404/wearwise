@@ -17,14 +17,17 @@ import {
   CheckCircle2,
   Sparkles,
   Star,
+  UserPlus,
 } from 'lucide-react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useClothes } from '@/hooks/useClothes';
 import { useAppStore } from '@/store/useAppStore';
 import { RatingModal } from './RatingModal';
+import { useRouter } from 'expo-router';
 
 export function NotificationsView() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user, isDarkMode } = useAppStore();
   const dk = isDarkMode;
   const { fetchNotifications, submitRating, loading } = useClothes();
@@ -56,6 +59,13 @@ export function NotificationsView() {
     if (notif.type === 'rating_request' && notif.status === 'pending') {
       setSelectedNotif(notif);
       setRatingModalVisible(true);
+      return;
+    }
+    if (notif.type === 'follow') {
+      const actorId = notif.fromUserId || notif.actorId;
+      if (actorId) {
+        router.push(`/user/${actorId}`);
+      }
     }
   };
 
@@ -90,6 +100,8 @@ export function NotificationsView() {
       case 'rating_request':
       case 'rating_received':
         return <View style={[styles.iconBox, { backgroundColor: 'rgba(244, 197, 66, 0.2)' }]}><Star size={20} color="#F4C542" fill="#F4C542" /></View>;
+      case 'follow':
+        return <View style={[styles.iconBox, { backgroundColor: 'rgba(90, 45, 130, 0.1)' }]}><UserPlus size={20} color="#5A2D82" /></View>;
       default:
         return <View style={[styles.iconBox, { backgroundColor: 'rgba(43, 43, 43, 0.05)' }]}><BellRing size={20} color="#2B2B2B" /></View>;
     }

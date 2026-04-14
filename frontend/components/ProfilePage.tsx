@@ -365,7 +365,7 @@ export function ProfilePage() {
                   >
                     <View style={styles.imageContainer}>
                       <Image
-                        source={{ uri: (item.images && item.images.length > 0) ? item.images[0] : 'https://via.placeholder.com/150' }}
+                        source={{ uri: (item.images && item.images.length > 0) ? item.images[0] : 'https://placehold.co/150/png' }}
                         style={styles.closetImage}
                       />
                       <View style={styles.cardBadgeContainer}>

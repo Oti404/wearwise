@@ -33,11 +33,12 @@ export default function ItemDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { fetchItemDetails, loading, error: apiError } = useClothes();
+  const { fetchItemDetails, fetchUserRatings, loading, error: apiError } = useClothes();
   const addToCart = useAppStore((state) => state.addToCart);
   const cart = useAppStore((state) => state.cart);
 
   const [item, setItem] = useState<ClothingItem | null>(null);
+  const [ownerRatings, setOwnerRatings] = useState<{ rating: number }[]>([]);
   const [notFound, setNotFound] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const isInCart = cart.some((c) => String(c.id) === String(id));
@@ -52,8 +53,12 @@ export default function ItemDetailsScreen() {
     const data = await fetchItemDetails(id);
     if (data) {
       setItem(data);
+      const ownerId = data.owner?.id || data.userId;
+      if (ownerId) {
+        const ratingData = await fetchUserRatings(ownerId);
+        setOwnerRatings(Array.isArray(ratingData) ? ratingData : []);
+      }
     } else {
-      // If we got null and there's no apiError, it was likely a 404
       setNotFound(true);
     }
   };
@@ -72,7 +77,7 @@ export default function ItemDetailsScreen() {
       id: item.id!,
       name: item.name,
       price: item.price || 0,
-      image: (item.images && item.images.length > 0) ? item.images[0] : 'https://via.placeholder.com/400',
+      image: (item.images && item.images.length > 0) ? item.images[0] : 'https://placehold.co/400/png',
       seller: item.userId,
       size: item.size,
       distance: item.distance || 0,
@@ -152,7 +157,7 @@ export default function ItemDetailsScreen() {
     );
   }
 
-  const displayImages = item.images?.length > 0 ? item.images : ['https://via.placeholder.com/600'];
+  const displayImages = item.images?.length > 0 ? item.images : ['https://placehold.co/600/png'];
 
   return (
     <View style={styles.container}>
@@ -284,7 +289,14 @@ export default function ItemDetailsScreen() {
 
           {/* OWNER CARD */}
           <Text style={styles.sectionTitle}>Added by</Text>
-          <TouchableOpacity style={styles.ownerCard} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.ownerCard}
+            activeOpacity={0.7}
+            onPress={() => {
+              const ownerId = item.owner?.id || item.userId;
+              if (ownerId) router.push(`/user/${ownerId}`);
+            }}
+          >
              <View style={styles.ownerAvatarWrapper}>
                 {item.owner?.avatarUrl ? (
                   <Image source={{ uri: item.owner.avatarUrl }} style={styles.ownerAvatar} />
@@ -303,7 +315,11 @@ export default function ItemDetailsScreen() {
                 </Text>
                 <View style={styles.ownerRatingRow}>
                    <Star size={12} color="#F4C542" fill="#F4C542" />
-                   <Text style={styles.ownerRatingText}>4.9 (24 completed trades)</Text>
+                   <Text style={styles.ownerRatingText}>
+                     {ownerRatings.length > 0
+                       ? `${(ownerRatings.reduce((s, r) => s + r.rating, 0) / ownerRatings.length).toFixed(1)} (${ownerRatings.length} reviews)`
+                       : 'No reviews yet'}
+                   </Text>
                 </View>
              </View>
              <ChevronLeft size={20} color="#5A2D82" style={{ transform: [{ rotate: '180deg' }] }} opacity={0.3} />
