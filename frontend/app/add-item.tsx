@@ -150,10 +150,6 @@ const AddItemScreen = () => {
       const newUris = result.assets.map(a => a.uri);
       const startIndex = images.length;
       setImages(prev => [...prev, ...newUris]);
-      setImageValidations(prev => [
-        ...prev,
-        ...newUris.map(() => ({ status: 'validating' as ImageValidationStatus })),
-      ]);
       newUris.forEach((uri, i) => validateImage(uri, startIndex + i));
     }
   };
