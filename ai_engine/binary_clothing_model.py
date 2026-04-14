@@ -62,7 +62,7 @@ class BinaryClothingClassifier:
         self._device = t.device("cuda" if t.cuda.is_available() else "cpu")
         
         print(f"[AI] Loading Binary Classifier from {self.checkpoint_path}...")
-        checkpoint = t.load(self.checkpoint_path, map_location="cpu")
+        checkpoint = t.load(self.checkpoint_path, map_location="cpu", weights_only=False)
         self._class_names = checkpoint["class_names"]
         
         if self.threshold is None:
