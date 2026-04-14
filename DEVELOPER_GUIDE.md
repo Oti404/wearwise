@@ -42,6 +42,9 @@ Before you begin, ensure your local development environment strictly meets these
 - **Port Conflicts:** The Orchestrator expects Frontend on `3000`, Backend on `5000`, AI Engine on `8000`. If any of these fail to open, check for background processes hogging the port using `netstat -ano`.
 - **Database Connection Failures:** Ensure `DATABASE_URL` in `backend/.env` is strictly formatted (`postgres://user:password@localhost:5432/dbname`) and Postgres is actively running.
 - **AI Engine Boot Error:** If Python fails with `ModuleNotFoundError`, your virtual environment didn't initialize correctly. Run `python -m venv venv` manually in the `ai-engine` folder and install `requirements.txt`.
+- **Hugging Face LFS Sync Error (`_pickle.UnpicklingError: invalid load key, 'v'`):**
+  - **Context:** When syncing AI models to Hugging Face Spaces from a private GitHub repository, HF Spaces often fails to authenticate to GitHub's Large File Storage (LFS). Instead of downloading the actual binary `.pt` files, it downloads the text-based LFS pointers (which start with 'version...', hence the 'v' key error in PyTorch).
+  - **Solution:** For models smaller than 50-100MB (like `best_binary_clothing.pt`), bypass Git LFS entirely. Run `git lfs untrack "*.pt"`, `git rm --cached <file>`, and add/commit it as a standard native Git blob. This completely eliminates dependency on external LFS permissions and allows Hugging Face to clone the model natively.
 
 ## Automation Scripts Ecosystem
 The monorepo architecture utilizes an array of scripts located under the `/scripts/` directory:
