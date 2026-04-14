@@ -65,7 +65,7 @@
     },
     "extra": {
       "router": {
-        "origin": "https://wearwise-web.vercel.app"
+        "origin": "https://wearwise-frontend-foeu.onrender.com"
       },
       "eas": {
         "projectId": "d8cd016f-a91f-41c2-b8ab-ee08ac879570"

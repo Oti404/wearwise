@@ -7,7 +7,7 @@ services:
   - type: web
     name: wearwise-frontend
     runtime: static
-    buildCommand: cd frontend && npm install && npx expo export -p web && echo "/*  /index.html  200" > dist/_redirects
+    buildCommand: cd frontend && npm install && npx expo export -p web && printf '/*\t/index.html\t200\n' > dist/_redirects
     staticPublishPath: ./frontend/dist
     routes:
       - type: rewrite
