@@ -56,12 +56,17 @@ jobs:
           git config user.name "WearWise Bot"
           git config user.email "bot@wearwise.team"
           
-          # Adăugăm fișierele (Git va respecta automat .gitignore-ul din folder)
+          # Adăugăm fișierele (Git va respecta automat .gitignore-ul din folder etc)
+          # Asta va rula clean filters pentru LFS și va genera obiectele LFS în .git-ul local
           git add -A
           
-          # Commit și Push doar dacă sunt schimbări
+          # FORȚĂM O UPLOADARE LFS! Chiar dacă fișierele text (pointerii) sunt la fel și commit-ul nu s-ar face, 
+          # fișierul binar real trebuie trimis către Hugging Face / modulul remote.
+          git lfs push origin HEAD:${GITHUB_REF#refs/heads/} --all || true
+          
+          # Commit și Push la schimbările pur de text (dacă există)
           if git diff --staged --quiet; then
-            echo "Nicio schimbare de sincronizat pentru ${{ matrix.folder }}."
+            echo "Nicio schimbare TEXT de sincronizat pentru ${{ matrix.folder }} (dar LFS-ul a fost actualizat!)."
           else
             git commit -m "Mirror sync from monorepo (Branch: ${GITHUB_REF#refs/heads/})"
             git push origin HEAD:${GITHUB_REF#refs/heads/} --force
