@@ -1,7 +1,7 @@
 import { ClothingItem, useClothes } from '@/hooks/useClothes';
 import { useAppStore } from "@/store/useAppStore";
 import { useRouter } from 'expo-router';
-import { Bell, Heart, MapPin, RotateCcw, Search, ShoppingBag, SlidersHorizontal, Sparkles, X as XIcon, Menu, Users } from 'lucide-react-native';
+import { Bell, Heart, MapPin, RotateCcw, Search, ShoppingBag, SlidersHorizontal, Sparkles, X as XIcon, Users } from 'lucide-react-native';
 import { useFollow } from '@/hooks/useFollow';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -56,6 +56,7 @@ const SwipeView = () => {
   const [availableHeight, setAvailableHeight] = useState(0);
   const [filterVisible, setFilterVisible] = useState(false);
   const [radiusVisible, setRadiusVisible] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({
     modes: [],
@@ -196,26 +197,55 @@ const SwipeView = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Row 1: Title + Cart */}
+        {/* Row 1: Title + All Action Icons */}
         <View style={styles.topRow}>
-          <View style={styles.titleContainer}>
-            <TouchableOpacity onPress={() => {}} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-              <Menu size={24} color={dk ? '#C084FC' : '#3B1C56'} strokeWidth={2.5} />
-            </TouchableOpacity>
-            <Text style={[styles.titleText, dk && { color: '#FFFFFF' }]}>
-              {viewMode === 'swipe' ? 'For You' : 'Recent Feed'}
-            </Text>
-          </View>
+          <Text style={[styles.titleText, dk && { color: '#FFFFFF' }]} numberOfLines={1}>
+            {viewMode === 'swipe' ? 'For You' : 'Recent Feed'}
+          </Text>
 
           <View style={styles.headerActionBox}>
-            <TouchableOpacity style={[styles.iconCircleBtn, dk && { backgroundColor: '#2B2B2B', borderColor: 'rgba(255,255,255,0.06)' }]} onPress={() => router.push('/notifications')} activeOpacity={0.8} hitSlop={{top: 5, bottom: 5, left: 5, right: 5}}>
-              <Bell size={22} color={dk ? '#C084FC' : '#5A2D82'} strokeWidth={2.5} />
+            <TouchableOpacity
+              style={[styles.iconCircleBtn, dk && { backgroundColor: '#2B2B2B', borderColor: 'rgba(255,255,255,0.06)' }, searchVisible && styles.iconCircleBtnActive]}
+              onPress={() => { setSearchVisible(v => !v); if (searchVisible) setSearchQuery(''); }}
+              activeOpacity={0.8}
+            >
+              <Search size={20} color={searchVisible ? '#FFF' : (dk ? '#C084FC' : '#5A2D82')} strokeWidth={2.5} />
+              {!searchVisible && searchQuery.trim() !== '' && <View style={styles.activeDot} />}
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.iconCircleBtn, dk && { backgroundColor: '#2B2B2B', borderColor: 'rgba(255,255,255,0.06)' }]} onPress={() => router.push('/(tabs)/cart')} activeOpacity={0.8} hitSlop={{top: 5, bottom: 5, left: 5, right: 5}}>
-              <ShoppingBag size={22} color={dk ? '#C084FC' : '#5A2D82'} strokeWidth={2.5} />
+            <TouchableOpacity
+              style={[styles.iconCircleBtn, dk && { backgroundColor: '#2B2B2B', borderColor: 'rgba(255,255,255,0.06)' }, radiusVisible && styles.iconCircleBtnActive]}
+              onPress={() => setRadiusVisible(v => !v)}
+              activeOpacity={0.8}
+            >
+              <MapPin size={20} color={radiusVisible ? '#FFF' : (dk ? '#C084FC' : '#5A2D82')} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.iconCircleBtn, dk && { backgroundColor: '#2B2B2B', borderColor: 'rgba(255,255,255,0.06)' }]}
+              onPress={() => setFilterVisible(true)}
+              activeOpacity={0.8}
+            >
+              <SlidersHorizontal size={20} color={dk ? '#C084FC' : '#5A2D82'} strokeWidth={2.5} />
+              {hasActiveFilters && <View style={styles.activeDot} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.iconCircleBtn, dk && { backgroundColor: '#2B2B2B', borderColor: 'rgba(255,255,255,0.06)' }]}
+              onPress={() => router.push('/notifications')}
+              activeOpacity={0.8}
+            >
+              <Bell size={20} color={dk ? '#C084FC' : '#5A2D82'} strokeWidth={2.5} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.iconCircleBtn, dk && { backgroundColor: '#2B2B2B', borderColor: 'rgba(255,255,255,0.06)' }]}
+              onPress={() => router.push('/(tabs)/cart')}
+              activeOpacity={0.8}
+            >
+              <ShoppingBag size={20} color={dk ? '#C084FC' : '#5A2D82'} strokeWidth={2.5} />
               {cart.length > 0 && (
-                <View style={[styles.cartBadge, { top: -4, right: -4 }]}>
+                <View style={styles.cartBadge}>
                   <Text style={styles.cartBadgeText}>{cart.length}</Text>
                 </View>
               )}
@@ -223,34 +253,27 @@ const SwipeView = () => {
           </View>
         </View>
 
-        {/* Row 2: Search + Location + Filters */}
-        <View style={styles.discoveryRow}>
-          <View style={[styles.searchBox, dk && { backgroundColor: '#2B2B2B', borderColor: 'rgba(255,255,255,0.06)' }]}>
-            <Search size={17} color={dk ? '#C084FC' : '#9B59B6'} />
-            <TextInput
-              style={[styles.searchInput, dk && { color: '#FFFFFF' }]}
-              placeholder="Search unique items..."
-              placeholderTextColor={dk ? 'rgba(192,132,252,0.45)' : 'rgba(90,45,130,0.35)'}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
+        {/* Search Row (expanded on demand) */}
+        {searchVisible && (
+          <View style={styles.searchRow}>
+            <View style={[styles.searchBox, dk && { backgroundColor: '#2B2B2B', borderColor: 'rgba(255,255,255,0.06)' }]}>
+              <Search size={17} color={dk ? '#C084FC' : '#9B59B6'} />
+              <TextInput
+                style={[styles.searchInput, dk && { color: '#FFFFFF' }]}
+                placeholder="Search unique items..."
+                placeholderTextColor={dk ? 'rgba(192,132,252,0.45)' : 'rgba(90,45,130,0.35)'}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus
+              />
+              {searchQuery.trim() !== '' && (
+                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <XIcon size={16} color={dk ? 'rgba(192,132,252,0.6)' : 'rgba(90,45,130,0.4)'} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
-
-          <TouchableOpacity
-            style={[styles.iconBtn, dk && { backgroundColor: '#2B2B2B', borderColor: 'rgba(255,255,255,0.06)' }, radiusVisible && styles.iconBtnActive, { borderRadius: 25 }]}
-            onPress={() => setRadiusVisible(v => !v)}
-          >
-            <MapPin size={19} color={radiusVisible ? '#FFF' : (dk ? '#C084FC' : '#5A2D82')} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.iconBtn, dk && { backgroundColor: '#2B2B2B', borderColor: 'rgba(255,255,255,0.06)' }, hasActiveFilters && styles.iconBtnDot, { borderRadius: 25 }]}
-            onPress={() => setFilterVisible(true)}
-          >
-            <SlidersHorizontal size={19} color={dk ? '#C084FC' : '#5A2D82'} strokeWidth={2.5} />
-            {hasActiveFilters && <View style={styles.activeDot} />}
-          </TouchableOpacity>
-        </View>
+        )}
 
         {/* Radius expander */}
         {radiusVisible && (
@@ -479,80 +502,66 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  tagRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginBottom: 2,
-  },
-  tagText: {
-    fontSize: 9,
-    fontWeight: '900',
-    color: '#9B59B6',
-    letterSpacing: 2.5,
+    marginBottom: 12,
   },
   titleText: {
-    fontSize: 28,
+    flex: 1,
+    fontSize: 26,
     fontFamily: 'Quicksand_700Bold',
     color: '#3B1C56',
     letterSpacing: -0.5,
   },
   headerActionBox: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
   },
   iconCircleBtn: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     backgroundColor: '#FFF',
-    borderRadius: 24,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
     ...Platform.select({
-      web: { boxShadow: '0px 6px 12px rgba(90, 45, 130, 0.12)' } as any,
+      web: { boxShadow: '0px 4px 10px rgba(90, 45, 130, 0.10)' } as any,
       default: {
         shadowColor: '#5A2D82',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-        elevation: 4,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.10,
+        shadowRadius: 10,
+        elevation: 3,
       }
     }),
     borderWidth: 1.5,
     borderColor: 'rgba(90,45,130,0.06)',
   },
+  iconCircleBtnActive: {
+    backgroundColor: '#5A2D82',
+    borderColor: '#5A2D82',
+  },
   cartBadge: {
     position: 'absolute',
-    top: -3,
-    right: -3,
-    width: 20,
-    height: 20,
+    top: -4,
+    right: -4,
+    width: 18,
+    height: 18,
     backgroundColor: '#F4C542',
-    borderRadius: 10,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#FFF',
   },
   cartBadgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '900',
     color: '#5A2D82',
   },
-  discoveryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  searchRow: {
+    marginBottom: 10,
   },
   searchBox: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFF',
@@ -579,35 +588,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1A1A2E',
   },
-  iconBtn: {
-    width: 50,
-    height: 50,
-    backgroundColor: '#FFF',
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({
-      web: { boxShadow: '0px 4px 10px rgba(90, 45, 130, 0.08)' } as any,
-      default: {
-        shadowColor: '#5A2D82',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 10,
-        elevation: 3,
-      }
-    }),
-    borderWidth: 1.5,
-    borderColor: 'rgba(90,45,130,0.05)',
-  },
-  iconBtnActive: {
-    backgroundColor: '#5A2D82',
-    borderColor: '#5A2D82',
-  },
-  iconBtnDot: {},
   activeDot: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: 10,
+    right: 10,
     width: 7,
     height: 7,
     backgroundColor: '#F4C542',
