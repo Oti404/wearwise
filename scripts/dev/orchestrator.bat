@@ -72,6 +72,7 @@ echo  ===========================================================
 echo.
 echo   [ALL]     AI (Local) + Backend + Frontend
 echo   [REMOTE]  AI (Online) + Backend + Frontend
+echo   [LOCAL]   Backend Local + Frontend (API -^> localhost)
 echo   [S]       Stop (Elibereaza porturile)
 echo   [Q]       Iesire
 echo.
@@ -79,6 +80,7 @@ set /p "choice=  Alege optiunea: "
 
 if /I "!choice!"=="ALL"    goto :START_ALL
 if /I "!choice!"=="REMOTE" goto :START_REMOTE
+if /I "!choice!"=="LOCAL"  goto :START_LOCAL
 if /I "!choice!"=="S"      goto :STOP_ALL
 if /I "!choice!"=="Q"      exit /b
 goto :MAIN_MENU
@@ -115,6 +117,21 @@ if "!PORT_BUSY!"=="1" taskkill /F /PID !BUSY_PID! >nul 2>&1
 call :START_SERVICE "BACKEND" "0C" "%BACKEND_DIR%" "node server.js"
 call :WAIT_COUNTDOWN 3
 call :START_SERVICE "FRONTEND" "09" "%FRONTEND_DIR%" "npx expo start"
+call :WAIT_COUNTDOWN 2
+echo.
+echo  [ORCHESTRATOR] Deschidem Browserul...
+start %FRONTEND_URL%
+pause
+goto :MAIN_MENU
+
+:START_LOCAL
+echo.
+echo  [ORCHESTRATOR] Incepem pornirea (Backend Local + Frontend -> localhost)...
+call :CHECK_PORT %BACKEND_PORT%
+if "!PORT_BUSY!"=="1" taskkill /F /PID !BUSY_PID! >nul 2>&1
+call :START_SERVICE "BACKEND" "0C" "%BACKEND_DIR%" "set PORT=%BACKEND_PORT%&& node server.js"
+call :WAIT_COUNTDOWN 3
+call :START_SERVICE "FRONTEND" "09" "%FRONTEND_DIR%" "set EXPO_PUBLIC_API_URL=http://localhost:%BACKEND_PORT%&& npx expo start"
 call :WAIT_COUNTDOWN 2
 echo.
 echo  [ORCHESTRATOR] Deschidem Browserul...
