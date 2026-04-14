@@ -112,7 +112,7 @@ const CartView = () => {
                   {/* Product Image */}
                   <View style={styles.imageWrapper}>
                     <Image
-                      source={{ uri: item.image || 'https://via.placeholder.com/100' }}
+                      source={{ uri: item.image || 'https://placehold.co/100/png' }}
                       style={styles.itemImage}
                       resizeMode="cover"
                     />

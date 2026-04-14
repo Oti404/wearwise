@@ -28,7 +28,7 @@ const SwipeCard = ({ item, cardWidth, cardHeight }: SwipeCardProps) => {
 
   const imageUrl = item.images && item.images.length > 0
     ? item.images[0]
-    : 'https://via.placeholder.com/400x711';
+    : 'https://placehold.co/400x711/png';
   const imageSource = typeof imageUrl === 'string' ? { uri: imageUrl } : imageUrl;
 
   const W = cardWidth ?? SCREEN_WIDTH - 32;

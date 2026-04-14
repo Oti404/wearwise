@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Link, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { UserCircle, Layers, HeartHandshake } from 'lucide-react-native';
+import { UserCircle, Layers, Users } from 'lucide-react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
@@ -30,16 +30,16 @@ export function BottomNav({ state, descriptors, navigation }: BottomTabBarProps)
     ]}>
       <View style={styles.navRow}>
 
-        {/* Donations */}
-        <Link href="./donations" asChild>
+        {/* Network */}
+        <Link href="./network" asChild>
           <TouchableOpacity style={styles.navItem}>
-            <HeartHandshake
+            <Users
               size={22}
-              color={checkIsActive('donations') ? activeColor : inactiveColor}
-              strokeWidth={checkIsActive('donations') ? 2.5 : 2}
+              color={checkIsActive('network') ? activeColor : inactiveColor}
+              strokeWidth={checkIsActive('network') ? 2.5 : 2}
             />
-            <Text style={[styles.navText, { color: checkIsActive('donations') ? activeColor : inactiveColor }]}>
-              Donations
+            <Text style={[styles.navText, { color: checkIsActive('network') ? activeColor : inactiveColor }]}>
+              Network
             </Text>
           </TouchableOpacity>
         </Link>
