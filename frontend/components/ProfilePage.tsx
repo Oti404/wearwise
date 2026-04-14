@@ -367,6 +367,7 @@ export function ProfilePage() {
                       <Image
                         source={{ uri: (item.images && item.images.length > 0) ? item.images[0] : 'https://placehold.co/150/png' }}
                         style={styles.closetImage}
+                        resizeMode="cover"
                       />
                       <View style={styles.cardBadgeContainer}>
                         {isBoughtByMe ? (
