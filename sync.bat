@@ -143,8 +143,8 @@ goto :MENU
 
 :ADMIN_MENU
 cls
-echo [1] MERGE develop to releases
-echo [2] MERGE releases to main
+echo [1] CREATE RELEASE  develop -^> releases/wearwise_X-Y-Z
+echo [2] SHIP TO MAIN    releases/wearwise_X-Y-Z -^> main
 echo [3] CREATE TAG
 echo [B] BACK
 echo.
@@ -156,26 +156,52 @@ if /I "%ac%"=="B" goto :MENU
 goto :ADMIN_MENU
 
 :ADM_DEV_TO_REL
-git checkout releases
-git pull origin releases
-git merge develop
-git push origin releases
+echo.
+set "ver="
+set /p "ver=Version (ex: 2-1-0): "
+if "%ver%"=="" goto :ADMIN_MENU
+set "REL_BRANCH=releases/wearwise_%ver%"
+echo.
+echo [GIT] Cream %REL_BRANCH% din develop...
+git checkout develop
+git pull origin develop
+git checkout -b "%REL_BRANCH%"
+git push origin "%REL_BRANCH%"
+echo.
+echo [OK] Branch %REL_BRANCH% creat si trimis pe GitHub.
 pause
 goto :ADMIN_MENU
 
 :ADM_REL_TO_MAIN
+echo.
+set "ver="
+set /p "ver=Version (ex: 2-1-0): "
+if "%ver%"=="" goto :ADMIN_MENU
+set "REL_BRANCH=releases/wearwise_%ver%"
+echo.
+echo [GIT] Mergem %REL_BRANCH% -^> main...
 git checkout main
 git pull origin main
-git merge releases
+git merge "%REL_BRANCH%"
+if errorlevel 1 (
+    echo [EROARE] Conflict la merge! Rezolva manual.
+    git merge --abort
+    pause
+    goto :ADMIN_MENU
+)
 git push origin main
+echo [OK] main actualizat.
 pause
 goto :ADMIN_MENU
 
 :ADM_TAG
-set /p "v=Versiune: "
-set "TAG=wearwise-%v%"
-git tag -a "%TAG%" -m "Version %v%"
+echo.
+set "ver="
+set /p "ver=Version (ex: 2.1.0): "
+if "%ver%"=="" goto :ADMIN_MENU
+set "TAG=wearwise-%ver%"
+git tag -a "%TAG%" -m "Release %ver%"
 git push origin "%TAG%"
-call scripts\dev\sync_engine.bat "releases"
+echo [OK] Tag %TAG% creat si trimis.
 pause
 goto :ADMIN_MENU
