@@ -25,6 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: monorepo
+          lfs: true
 
       - name: Checkout Module Repo
         uses: actions/checkout@v4
@@ -33,6 +34,7 @@ jobs:
           token: ${{ secrets.SYNC_TOKEN_CLASSIC || secrets.SYNC_TOKEN }}
           path: ${{ matrix.repo }}
           fetch-depth: 0
+          lfs: true
 
       - name: Sync Files
         run: |
@@ -41,6 +43,11 @@ jobs:
           
           # Copiem conținutul din monorepo în repo-ul destinație (inclusiv .gitignore)
           cp -a monorepo/${{ matrix.folder }}/. ${{ matrix.repo }}/
+          
+          # Copiem și configurările LFS globale pentru ca referințele binare să fie păstrate corect
+          if [ -f "monorepo/.gitattributes" ]; then
+            cp monorepo/.gitattributes ${{ matrix.repo }}/
+          fi
           
           # Intrăm în repo-ul destinație
           cd ${{ matrix.repo }}
