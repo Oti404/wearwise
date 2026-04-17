@@ -350,9 +350,7 @@ export function ProfilePage() {
           {closet.length > 0 ? (
             <View style={styles.closetGrid}>
               {closet.map((item, index) => {
-                const isTrade = item.mode === 'trade' || item.mode === 'both';
-                const isSell = item.mode === 'sell' || item.mode === 'both';
-                const isDonate = item.mode === 'donate';
+                const isSell = item.mode === 'sell';
                 const isSold = item.status === 'sold';
                 const isBoughtByMe = item.buyerId === user?.uid;
 
@@ -378,24 +376,11 @@ export function ProfilePage() {
                           <View style={[styles.cardBadge, { backgroundColor: '#E74C3C', width: 50 }]}>
                             <Text style={styles.badgeTextSmall}>SOLD</Text>
                           </View>
-                        ) : isDonate ? (
-                          <View style={[styles.cardBadge, { backgroundColor: '#E74C3C' }]}>
-                            <Gift size={8} color="#FFF" fill="#FFF" />
+                        ) : isSell ? (
+                          <View style={[styles.cardBadge, { backgroundColor: '#F4C542' }]}>
+                            <ShoppingBag size={8} color="#2B2B2B" />
                           </View>
-                        ) : (
-                          <>
-                            {isTrade && (
-                              <View style={[styles.cardBadge, { backgroundColor: '#8E44AD' }]}>
-                                <ArrowRightLeft size={8} color="#FFF" />
-                              </View>
-                            )}
-                            {isSell && (
-                              <View style={[styles.cardBadge, { backgroundColor: '#F4C542' }]}>
-                                <ShoppingBag size={8} color="#2B2B2B" />
-                              </View>
-                            )}
-                          </>
-                        )}
+                        ) : null}
                       </View>
                       {isBoughtByMe && (
                         <TouchableOpacity
@@ -412,7 +397,7 @@ export function ProfilePage() {
                     <View style={styles.closetItemInfo}>
                       <Text style={[styles.closetItemName, dk && { color: '#FFFFFF' }]} numberOfLines={1}>{item.name}</Text>
                       <Text style={styles.closetItemPrice}>
-                        {isBoughtByMe ? 'IN WARDROBE' : isSold ? 'SOLD' : item.mode === 'trade' ? 'TRADE' : item.mode === 'donate' ? 'DONATION' : `${item.price} RON`}
+                        {isBoughtByMe ? 'IN WARDROBE' : isSold ? 'SOLD' : item.price ? `${item.price} RON` : '-'}
                       </Text>
                     </View>
                   </TouchableOpacity>

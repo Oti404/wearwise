@@ -34,8 +34,8 @@ interface User {
 
 interface AppState {
   // Navigare
-  view: 'swipe' | 'profile' | 'notifications' | 'donations' | 'cart';
-  setView: (view: 'swipe' | 'profile' | 'notifications' | 'donations' | 'cart') => void;
+  view: 'swipe' | 'profile' | 'notifications' | 'cart';
+  setView: (view: 'swipe' | 'profile' | 'notifications' | 'cart') => void;
   
   // Autentificare
   isLoggedIn: boolean;

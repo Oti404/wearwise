@@ -15,7 +15,7 @@ const relistSchema = z.object({
       name: z.string().min(1).optional(),
       description: z.string().optional(),
       price: z.number().positive().optional().nullable(),
-      mode: z.enum(['trade', 'sell', 'both', 'donate']).optional(),
+      mode: z.enum(['sell']).optional(),
     })
     .optional(),
 });

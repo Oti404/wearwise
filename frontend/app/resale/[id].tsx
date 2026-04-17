@@ -32,7 +32,7 @@ const ResaleScreen = () => {
     category: 'Tricouri',
     size: 'M',
     condition: 'Nou',
-    mode: 'sell' as 'trade' | 'sell' | 'both' | 'donate',
+    mode: 'sell' as 'sell',
     price: '',
     latitude: undefined as number | undefined,
     longitude: undefined as number | undefined,
@@ -79,7 +79,7 @@ const ResaleScreen = () => {
       return;
     }
 
-    if ((form.mode === 'sell' || form.mode === 'both') && !form.price) {
+    if (!form.price) {
       Alert.alert('Error', 'Please enter the selling price.');
       return;
     }

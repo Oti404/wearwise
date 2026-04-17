@@ -21,8 +21,6 @@ import {
   UserPlus,
   UserCheck,
   ShoppingBag,
-  ArrowRightLeft,
-  Gift,
   Search,
 } from 'lucide-react-native';
 import { useFollow } from '@/hooks/useFollow';
@@ -224,26 +222,16 @@ export default function PublicProfileScreen() {
                     style={styles.cardIdmg} 
                   />
                   <View style={styles.cardBadges}>
-                    {(item.mode === 'trade' || item.mode === 'both') && (
-                      <View style={[styles.badge, { backgroundColor: '#8E44AD' }]}>
-                        <ArrowRightLeft size={8} color="#FFF" />
-                      </View>
-                    )}
-                    {(item.mode === 'sell' || item.mode === 'both') && (
+                    {item.mode === 'sell' && (
                       <View style={[styles.badge, { backgroundColor: '#F4C542' }]}>
                         <ShoppingBag size={8} color="#2B2B2B" />
-                      </View>
-                    )}
-                    {item.mode === 'donate' && (
-                      <View style={[styles.badge, { backgroundColor: '#E74C3C' }]}>
-                        <Gift size={8} color="#FFF" />
                       </View>
                     )}
                   </View>
                   <View style={styles.cardInfo}>
                     <Text style={[styles.itemName, dk && styles.textDark]} numberOfLines={1}>{item.name}</Text>
                     <Text style={styles.itemPrice}>
-                      {item.mode === 'donate' ? 'FREE' : (item.price ? `${item.price} RON` : 'TRADE')}
+                      {item.price ? `${item.price} RON` : '-'}
                     </Text>
                   </View>
                 </TouchableOpacity>

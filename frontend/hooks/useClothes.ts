@@ -14,7 +14,7 @@ export interface ClothingItem {
   category: string;
   size: string;
   condition: string;
-  mode: 'trade' | 'sell' | 'both' | 'donate';
+  mode: 'sell';
   price: number | null;
   status: 'active' | 'hidden' | 'sold' | 'deleted';
   buyerId?: string;

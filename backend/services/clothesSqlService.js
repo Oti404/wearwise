@@ -176,7 +176,7 @@ async function createClothesItem(authUid, data) {
             userId: sqlUser.id,
             name: data.name,
             description: data.description || null,
-            price: data.mode === 'trade' || data.mode === 'donate' ? 0 : parseFloat(data.price),
+            price: parseFloat(data.price),
             category: data.category,
             size: data.size,
             condition: data.condition,

@@ -8,7 +8,7 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import { Heart, X, MapPin, ShoppingBag, ArrowRightLeft, Gift, Tag } from 'lucide-react-native';
+import { Heart, X, MapPin, ShoppingBag } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { ClothingItem } from "@/hooks/useClothes";
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,9 +34,7 @@ const SwipeCard = ({ item, cardWidth, cardHeight }: SwipeCardProps) => {
   const W = cardWidth ?? SCREEN_WIDTH - 32;
   const H = cardHeight ?? W * (16 / 9);
 
-  const isTrade = item.mode === 'trade' || item.mode === 'both';
-  const isBuy = item.mode === 'sell' || item.mode === 'both';
-  const isDonate = item.mode === 'donate';
+  const isBuy = item.mode === 'sell';
 
   return (
     <TouchableOpacity
@@ -58,23 +56,11 @@ const SwipeCard = ({ item, cardWidth, cardHeight }: SwipeCardProps) => {
           style={styles.gradientBottom}
         />
 
-        {/* ── Mode Badges (top-left) ── */}
+        {/* ── Mode Badge (top-left) ── */}
         <View style={styles.badgesContainer}>
-          {isTrade && (
-            <View style={[styles.badge, styles.tradeBadge]}>
-              <ArrowRightLeft size={9} color="#FFF" />
-              <Text style={[styles.badgeText, { color: '#FFF' }]}>TRADE</Text>
-            </View>
-          )}
           {isBuy && (
             <View style={[styles.badge, styles.buyBadge]}>
               <Text style={styles.badgeText}>BUY</Text>
-            </View>
-          )}
-          {isDonate && (
-            <View style={[styles.badge, styles.donateBadge]}>
-              <Gift size={9} color="#FAF7F2" />
-              <Text style={styles.badgeText}>DONATE</Text>
             </View>
           )}
         </View>
@@ -88,7 +74,7 @@ const SwipeCard = ({ item, cardWidth, cardHeight }: SwipeCardProps) => {
               <Text style={styles.priceText}>
                 {(item.price !== null && item.price !== undefined && item.price > 0)
                   ? `${item.price}\nRON`
-                  : item.mode === 'donate' ? 'DONATE' : 'TRADE'}
+                  : '-'}
               </Text>
             </View>
 
@@ -154,22 +140,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     gap: 5,
   },
-  tradeBadge: {
-    backgroundColor: '#5A2D82',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
   buyBadge: {
     backgroundColor: '#F4C542',
     borderWidth: 0,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
-  },
-  donateBadge: {
-    backgroundColor: '#E74C3C',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
   },
   badgeText: {
     fontSize: 10,

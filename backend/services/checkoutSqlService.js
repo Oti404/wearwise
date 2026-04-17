@@ -61,14 +61,9 @@ async function processCheckout(buyerAuthUid, items) {
             });
 
             // Update seller stats
-            const statsUpdate = {};
-            if (item.mode === 'donate') {
-                statsUpdate.donationsCount = sql`${users.donationsCount} + 1`;
-            } else if (item.mode === 'trade') {
-                statsUpdate.tradesCount = sql`${users.tradesCount} + 1`;
-            } else {
-                statsUpdate.salesCount = sql`${users.salesCount} + 1`;
-            }
+            const statsUpdate = {
+                salesCount: sql`${users.salesCount} + 1`,
+            };
 
             await tx.update(users)
                 .set(statsUpdate)

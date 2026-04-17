@@ -17,9 +17,7 @@ import {
   Ruler,
   Tag,
   Info,
-  ArrowRightLeft,
   ShoppingBag,
-  Gift,
   Heart,
   Star,
   ShieldCheck,
@@ -87,39 +85,15 @@ export default function ItemDetailsScreen() {
   };
 
   const renderModeBadge = (mode: string) => {
-    switch (mode) {
-      case 'trade':
-        return (
-          <View style={[styles.badge, styles.tradeBadge]}>
-            <ArrowRightLeft size={12} color="#FAF7F2" />
-            <Text style={styles.badgeText}>TRADE ONLY</Text>
-          </View>
-        );
-      case 'sell':
-        return (
-          <View style={[styles.badge, styles.buyBadge]}>
-            <ShoppingBag size={12} color="#5A2D82" />
-            <Text style={[styles.badgeText, { color: '#5A2D82' }]}>BUY</Text>
-          </View>
-        );
-      case 'donate':
-        return (
-          <View style={[styles.badge, styles.donateBadge]}>
-            <Gift size={12} color="#FAF7F2" />
-            <Text style={styles.badgeText}>DONATION</Text>
-          </View>
-        );
-      case 'both':
-        return (
-          <View style={[styles.badge, styles.bothBadge]}>
-            <ArrowRightLeft size={12} color="#5A2D82" />
-            <ShoppingBag size={12} color="#5A2D82" />
-            <Text style={[styles.badgeText, { color: '#5A2D82' }]}>TRADE / SALE</Text>
-          </View>
-        );
-      default:
-        return null;
+    if (mode === 'sell') {
+      return (
+        <View style={[styles.badge, styles.buyBadge]}>
+          <ShoppingBag size={12} color="#5A2D82" />
+          <Text style={[styles.badgeText, { color: '#5A2D82' }]}>BUY</Text>
+        </View>
+      );
     }
+    return null;
   };
 
   if (loading) {
@@ -227,7 +201,7 @@ export default function ItemDetailsScreen() {
             <View style={styles.priceContainer}>
               <Text style={styles.priceLabel}>Investment</Text>
               <Text style={styles.priceValue}>
-                {item.mode === 'donate' ? 'FREE' : (item.price ? `${item.price} RON` : 'TRADE')}
+                {item.price ? `${item.price} RON` : '-'}
               </Text>
             </View>
           </View>
@@ -339,7 +313,7 @@ export default function ItemDetailsScreen() {
             disabled={isInCart}
           >
             <Text style={[styles.primaryActionText, isInCart && styles.disabledBtnText]}>
-              {isInCart ? 'ALREADY IN CART' : (item.mode === 'sell' ? 'ADD TO CART' : 'PROPOSE TRADE')}
+              {isInCart ? 'ALREADY IN CART' : 'ADD TO CART'}
             </Text>
          </TouchableOpacity>
       </View>
@@ -419,10 +393,7 @@ const styles = StyleSheet.create({
   },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   badge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, gap: 6 },
-  tradeBadge: { backgroundColor: '#5A2D82' },
   buyBadge: { backgroundColor: '#F4C542' },
-  donateBadge: { backgroundColor: '#E74C3C' },
-  bothBadge: { backgroundColor: '#FFF', borderWidth: 1.5, borderColor: '#5A2D82' },
   badgeText: { fontSize: 10, fontWeight: '900', letterSpacing: 0.5, color: '#FAF7F2' },
   priceContainer: { alignItems: 'flex-end' },
   priceLabel: { fontSize: 9, color: 'rgba(43, 43, 43, 0.4)', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 },

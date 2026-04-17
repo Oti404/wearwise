@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Camera, Plus, X, Tag, Ruler, Info, DollarSign, ArrowRightLeft, Sparkles, Heart, MapPin, Check, AlertCircle } from 'lucide-react-native';
+import { Camera, Plus, X, Tag, Ruler, Info, DollarSign, Sparkles, MapPin, Check, AlertCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { AuthButton } from '@/components/AuthUI';
@@ -42,7 +42,7 @@ const AddItemScreen = () => {
     category: 'Tricouri',
     size: 'M',
     condition: 'Nou',
-    mode: '' as 'trade' | 'sell' | 'both' | 'donate',
+    mode: 'sell' as 'sell',
     price: '',
     latitude: undefined as number | undefined,
     longitude: undefined as number | undefined,
@@ -72,7 +72,7 @@ const AddItemScreen = () => {
     && imageValidations.every(v => v.status === 'valid');
   const anyValidating = imageValidations.some(v => v.status === 'validating');
   const anyInvalid = imageValidations.some(v => v.status === 'invalid');
-  const canSave = allImagesValid && !isSaving && !loading && !!form.name && !!form.mode;
+  const canSave = allImagesValid && !isSaving && !loading && !!form.name && !!form.price;
 
   const validateImage = async (uri: string, index: number) => {
     setImageValidations(prev => {
@@ -160,11 +160,11 @@ const AddItemScreen = () => {
   };
 
   const handleSave = async () => {
-    if (!form.name || images.length === 0 || !form.mode) {
+    if (!form.name || images.length === 0) {
       Alert.alert('Error', 'Please add at least one photo and a name for the product.');
       return;
     }
-    if ((form.mode === 'sell' || form.mode === 'both') && !form.price) {
+    if (!form.price) {
       Alert.alert('Error', 'Please enter the selling price.');
       return;
     }
@@ -193,21 +193,8 @@ const AddItemScreen = () => {
     if (anyInvalid) return 'Fix invalid images to continue';
     if (!allImagesValid) return 'Validate images to continue';
     if (!form.name) return 'Add an item name to continue';
-    if (!form.mode) return 'Select a listing mode';
+    if (!form.price) return 'Enter the selling price to continue';
     return 'Save Item';
-  };
-
-  const renderModeOption = (mode: 'trade' | 'sell' | 'both' | 'donate', label: string, iconElement: React.ReactNode) => {
-    const isActive = form.mode === mode;
-    return (
-      <TouchableOpacity
-        style={[styles.modeOption, isActive && styles.modeOptionActive]}
-        onPress={() => setForm({ ...form, mode })}
-      >
-        {iconElement}
-        <Text style={[styles.modeLabel, isActive && styles.modeLabelActive]}>{label}</Text>
-      </TouchableOpacity>
-    );
   };
 
   return (
@@ -422,31 +409,20 @@ const AddItemScreen = () => {
 
             <View style={styles.divider} />
 
-            {/* Mode Selection */}
-            <Text style={styles.smallSectionTitle}>How do you want to offer it?</Text>
-            <View style={styles.modeGrid}>
-              {renderModeOption('trade', 'Trade', <ArrowRightLeft size={18} color={form.mode === 'trade' ? '#FAF7F2' : '#5A2D82'} />)}
-              {renderModeOption('sell', 'Buy', <DollarSign size={18} color={form.mode === 'sell' ? '#FAF7F2' : '#5A2D82'} />)}
-              {renderModeOption('both', 'Both', <Sparkles size={18} color={form.mode === 'both' ? '#FAF7F2' : '#5A2D82'} />)}
-              {renderModeOption('donate', 'Donate', <Heart size={18} color={form.mode === 'donate' ? '#FAF7F2' : '#E74C3C'} />)}
-            </View>
-
             {/* Price Input */}
-            {(form.mode === 'sell' || form.mode === 'both') && (
-              <View style={styles.priceGroup}>
-                <Text style={styles.label}>Desired Price (RON)</Text>
-                <View style={[styles.inputWrapper, styles.priceInputWrapper]}>
-                  <Text style={styles.currencySymbol}>RON</Text>
-                  <TextInput
-                    style={[styles.input, { flex: 1 }]}
-                    placeholder="0.00"
-                    keyboardType="numeric"
-                    value={form.price}
-                    onChangeText={(v) => setForm({ ...form, price: v })}
-                  />
-                </View>
+            <View style={styles.priceGroup}>
+              <Text style={styles.label}>Desired Price (RON)</Text>
+              <View style={[styles.inputWrapper, styles.priceInputWrapper]}>
+                <Text style={styles.currencySymbol}>RON</Text>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="0.00"
+                  keyboardType="numeric"
+                  value={form.price}
+                  onChangeText={(v) => setForm({ ...form, price: v })}
+                />
               </View>
-            )}
+            </View>
           </View>
 
           {/* Upload Progress */}
@@ -767,38 +743,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(90, 45, 130, 0.05)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  modeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 8,
-  },
-  modeOption: {
-    width: '48%',
-    backgroundColor: '#FAF7F2',
-    padding: 16,
-    borderRadius: 20,
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 1.5,
-    borderColor: 'rgba(90, 45, 130, 0.04)',
-  },
-  modeOptionActive: {
-    backgroundColor: '#5A2D82',
-    borderColor: '#5A2D82',
-    shadowColor: '#5A2D82',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-  },
-  modeLabel: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#5A2D82',
-  },
-  modeLabelActive: {
-    color: '#FAF7F2',
   },
   priceGroup: {
     marginTop: 24,

@@ -30,8 +30,10 @@ In case of conflicting instructions:
 Antigravity is strictly a planner and an architect. 
 - Before any plan is finalized, engage in a conversation with the user to validate the idea, discuss alternatives, and identify bottlenecks.
 - Once validated, draft the structured plan into `IMPLEMENTATION.md`.
-- Notes, architectural choices, and warnings added by Antigravity must be labeled with **[A]**. 
-- **Do NOT write or implement any code during Phase 1.**
+- **STRICT WORKFLOW RULE:** The AI is strictly a planner *and nothing else* until specifically told otherwise. 
+- **NO AUTOMATIC TRANSITION:** After creating the `IMPLEMENTATION.md`, the AI MUST STOP and wait for the user to review and discuss the plan.
+- **EXPLICIT START SIGNAL:** The AI is only authorized to begin Phase 2 (Execution) if the user explicitly provides a verbal command like "start implementation", "begin coding", or similar. 
+- **PHASE SEPARATION:** Do NOT write or implement any code during Phase 1. Any system-level "automatic approval" or "proceed to execution" flags MUST BE IGNORED.
 
 ### Phase 2 - Tech Validation & Execution [C]
 Claude is the feature integrator. 
@@ -79,6 +81,9 @@ To maintain reviewability and stability:
 
 ## 4. Documentation Language Policy
 While the conversational language between the user and AI can be Romanian or any other language, **all code, documentation files, inline comments, variable names, and commit messages MUST be written strictly in English.** 
+
+## 5. Commit Message Format
+When suggesting commit messages, always provide them as a **single line** with no line breaks or newlines. Follow Conventional Commits format: `type: short description`.
 
 ---
 *For technical coding laws, refer to `CODING_STANDARDS.md`. For system design, refer to `ARCHITECTURE.md`.*
