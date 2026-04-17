@@ -109,7 +109,7 @@ export function NotificationsView() {
 
   const formatTime = (createdAt: any) => {
     if (!createdAt) return '';
-    return 'Recent'; 
+    return 'Just now';
   };
 
   return (
@@ -119,9 +119,9 @@ export function NotificationsView() {
         <View>
           <View style={styles.headerTag}>
             <Sparkles size={14} color="#F4C542" />
-            <Text style={styles.tagText}>Activitate</Text>
+            <Text style={styles.tagText}>Activity</Text>
           </View>
-          <Text style={[styles.title, dk && { color: '#FFFFFF' }]}>Notificări</Text>
+          <Text style={[styles.title, dk && { color: '#FFFFFF' }]}>Notifications</Text>
         </View>
         <TouchableOpacity 
           style={styles.markReadBtn} 
@@ -132,7 +132,7 @@ export function NotificationsView() {
           {loading ? (
             <ActivityIndicator size="small" color="#5A2D82" />
           ) : (
-            <Text style={styles.markReadText}>Reîmprospătează</Text>
+            <Text style={styles.markReadText}>Refresh</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -148,7 +148,7 @@ export function NotificationsView() {
         {notifications.length === 0 && !loading && (
           <View style={styles.emptyContainer}>
              <BellRing size={48} color="rgba(43, 43, 43, 0.1)" />
-             <Text style={styles.emptyText}>Nu ai nicio notificare momentan.</Text>
+             <Text style={styles.emptyText}>You have no notifications yet.</Text>
           </View>
         )}
 
@@ -192,12 +192,12 @@ export function NotificationsView() {
                   styles.messageText,
                   { color: dk ? 'rgba(255,255,255,0.75)' : '#2B2B2B', opacity: notification.unread ? 1 : 0.6 }
                 ]}>
-                  {notification.status === 'completed' ? 'Evaluare trimisă ✅' : notification.message}
+                  {notification.status === 'completed' ? 'Review submitted' : notification.message}
                 </Text>
 
                 {notification.type === 'rating_request' && notification.status === 'pending' && (
                   <View style={styles.actionPrompt}>
-                    <Text style={styles.actionText}>Apasă pentru a evalua</Text>
+                    <Text style={styles.actionText}>Tap to rate</Text>
                   </View>
                 )}
               </View>
@@ -211,7 +211,7 @@ export function NotificationsView() {
         {/* End of updates */}
         {notifications.length > 0 && (
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Sfârșitul actualizărilor</Text>
+            <Text style={styles.footerText}>You're all caught up</Text>
           </View>
         )}
       </ScrollView>

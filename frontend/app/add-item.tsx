@@ -207,7 +207,7 @@ const AddItemScreen = () => {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <X size={24} color="#2B2B2B" strokeWidth={3} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>New in Wardrobe</Text>
+        <Text style={styles.headerTitle}>List an Item</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -306,7 +306,7 @@ const AddItemScreen = () => {
           {autoFilled && (
             <View style={styles.autoFillNote}>
               <Sparkles size={12} color="#5A2D82" />
-              <Text style={styles.autoFillNoteText}>Fields pre-filled by AI — feel free to edit</Text>
+              <Text style={styles.autoFillNoteText}>AI-suggested fields — review before saving.</Text>
             </View>
           )}
 
@@ -327,7 +327,7 @@ const AddItemScreen = () => {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Item Story (Description)</Text>
+              <Text style={styles.label}>Description</Text>
               <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
                 <TextInput
                   style={[styles.input, styles.textArea]}
@@ -371,7 +371,7 @@ const AddItemScreen = () => {
             <View style={styles.divider} />
 
             {/* Location Section */}
-            <Text style={styles.smallSectionTitle}>Where can we find you?</Text>
+            <Text style={styles.smallSectionTitle}>Location</Text>
             <TouchableOpacity 
               style={styles.locationCard}
               onPress={() => setIsMapVisible(true)}
@@ -385,7 +385,7 @@ const AddItemScreen = () => {
                   {form.address ? 'Location Set' : 'Choose Location on Map'}
                 </Text>
                 <Text style={styles.locationSubtitle} numberOfLines={1}>
-                  {form.address || 'Help the buyer know where the item is located.'}
+                  {form.address || 'Set a pickup or reference location for buyers.'}
                 </Text>
               </View>
               <View style={styles.arrowBox}>
@@ -430,7 +430,7 @@ const AddItemScreen = () => {
             <View style={styles.progressCard}>
               <View style={styles.progressHeader}>
                 <ActivityIndicator size="small" color="#5A2D82" />
-                <Text style={styles.progressTitle}>Uploading Item...</Text>
+                <Text style={styles.progressTitle}>Uploading...</Text>
                 <Text style={styles.progressDetail}>{uploadProgress.current}/{uploadProgress.total}</Text>
               </View>
               <View style={styles.track}>

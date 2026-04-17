@@ -35,11 +35,11 @@ const CartView = () => {
       clearCart();
 
       Alert.alert(
-        '✨ Order Placed!',
-        `Your order of ${totalFormatted} RON has been processed successfully. Items now appear in your wardrobe as "Bought"!`,
+        'Order Placed',
+        `Your order of ${totalFormatted} RON was placed successfully. Items are now in your wardrobe.`,
         [
           {
-            text: 'Awesome! 🎉',
+            text: 'Done',
             onPress: () => {
               router.push('/(tabs)/profile');
             },
@@ -89,13 +89,13 @@ const CartView = () => {
             <View style={styles.emptyIconBox}>
               <ShoppingBag size={44} color="#9B59B6" strokeWidth={1.5} />
             </View>
-            <Text style={styles.emptyTitle}>Cart is empty!</Text>
+            <Text style={styles.emptyTitle}>Your cart is empty</Text>
             <Text style={styles.emptySubtitle}>
-              Explore the wardrobe and add clothes you love by Swiping Right ❤️
+              Browse the feed and swipe right on items you'd like to buy.
             </Text>
             <TouchableOpacity style={styles.discoverBtn} onPress={() => router.push('/(tabs)')} activeOpacity={0.85}>
               <Sparkles size={16} color="#F4C542" />
-              <Text style={styles.discoverBtnText}>Discover Clothes</Text>
+              <Text style={styles.discoverBtnText}>Browse Items</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -144,7 +144,7 @@ const CartView = () => {
                     
                     <View style={styles.priceRow}>
                       <Text style={[styles.priceText, dk && { color: '#FFFFFF' }]}>
-                        {item.price > 0 ? `${item.price.toFixed(2)} RON` : 'FREE / TRADE'}
+                        {item.price > 0 ? `${item.price.toFixed(2)} RON` : '—'}
                       </Text>
                       {item.distance !== undefined && (
                         <View style={styles.distanceBadge}>

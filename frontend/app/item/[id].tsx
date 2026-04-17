@@ -118,7 +118,7 @@ export default function ItemDetailsScreen() {
         <Text style={styles.errorText}>{errorMsg}</Text>
         
         <TouchableOpacity style={styles.backButtonCenter} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Back to Wardrobe</Text>
+          <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -199,7 +199,7 @@ export default function ItemDetailsScreen() {
           <View style={styles.headerRow}>
             {renderModeBadge(item.mode)}
             <View style={styles.priceContainer}>
-              <Text style={styles.priceLabel}>Investment</Text>
+              <Text style={styles.priceLabel}>Price</Text>
               <Text style={styles.priceValue}>
                 {item.price ? `${item.price} RON` : '-'}
               </Text>
@@ -244,7 +244,7 @@ export default function ItemDetailsScreen() {
 
           <Text style={styles.sectionTitle}>Item Story</Text>
           <Text style={styles.descriptionText}>
-            {item.description || 'This item doesn\'t have a description, but it\'s certainly waiting for a fresh start!'}
+            {item.description || 'No description provided.'}
           </Text>
 
           {item.distance !== undefined && (

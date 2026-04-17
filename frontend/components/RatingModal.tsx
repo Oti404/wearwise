@@ -60,7 +60,7 @@ export function RatingModal({ visible, onClose, onSubmit, itemName }: RatingModa
             <View style={styles.header}>
               <View style={styles.headerTitleRow}>
                 <Sparkles size={20} color="#F4C542" />
-                <Text style={styles.title}>Product Rating</Text>
+                <Text style={styles.title}>Rate Your Purchase</Text>
               </View>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
                 <X size={20} color="#2B2B2B" strokeWidth={3} />
@@ -69,8 +69,8 @@ export function RatingModal({ visible, onClose, onSubmit, itemName }: RatingModa
 
             <View style={styles.body}>
               <Text style={styles.subtitle}>
-                How was the purchase for{'\n'}
-                <Text style={styles.itemName}>{itemName || 'this product'}?</Text>
+                How was your experience with{'\n'}
+                <Text style={styles.itemName}>{itemName || 'this item'}?</Text>
               </Text>
 
               {/* Stars */}
@@ -97,7 +97,7 @@ export function RatingModal({ visible, onClose, onSubmit, itemName }: RatingModa
                  rating === 1 ? 'Very poor' :
                  rating === 2 ? 'Poor' :
                  rating === 3 ? 'Ok' :
-                 rating === 4 ? 'Very good' : 'Excellent! ✨'}
+                 rating === 4 ? 'Very good' : 'Excellent'}
               </Text>
 
               {/* Comment Input */}

@@ -55,7 +55,7 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
         styles.buttonText,
         variant === 'secondary' ? styles.buttonTextSecondary : styles.buttonTextPrimary
       ]}>
-        {loading ? 'Se încarcă...' : title}
+        {loading ? 'Loading...' : title}
       </Text>
     </TouchableOpacity>
   );

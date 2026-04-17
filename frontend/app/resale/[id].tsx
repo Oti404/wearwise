@@ -74,8 +74,8 @@ const ResaleScreen = () => {
 
   const handleSave = async () => {
     if (!user?.uid || !id) return;
-    if (!form.name || !form.mode) {
-      Alert.alert('Error', 'Please fill in the name and listing mode.');
+    if (!form.name) {
+      Alert.alert('Error', 'Please add the item name.');
       return;
     }
 
@@ -99,8 +99,8 @@ const ResaleScreen = () => {
 
       await reList(user.uid, id as string, updates);
       
-      Alert.alert('Success', 'The item was relisted with new details! ✨', [
-        { text: 'Awesome!', onPress: () => router.push('/(tabs)/profile') }
+      Alert.alert('Success', 'Item relisted successfully.', [
+        { text: 'Done', onPress: () => router.push('/(tabs)/profile') }
       ]);
     } catch (err: any) {
       Alert.alert('Relist error', err.message);
@@ -181,7 +181,7 @@ const ResaleScreen = () => {
 
             {/* Price Input */}
             <View style={styles.priceGroup}>
-              <Text style={styles.label}>Your resale price (RON)</Text>
+              <Text style={styles.label}>Resale Price (RON)</Text>
               <View style={[styles.inputWrapper, styles.priceInputWrapper]}>
                 <Text style={styles.currencySymbol}>RON</Text>
                 <TextInput

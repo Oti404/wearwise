@@ -131,7 +131,7 @@ export function ProfilePage() {
             <TouchableOpacity
               style={[styles.modalRow, dk && { borderBottomColor: 'rgba(255,255,255,0.07)' }]}
               activeOpacity={0.75}
-              onPress={() => { setIsSettingsOpen(false); Alert.alert('Edit Profile', 'Coming soon!'); }}
+              onPress={() => { setIsSettingsOpen(false); Alert.alert('Edit Profile', 'Profile editing is coming soon.'); }}
             >
               <View style={[styles.modalRowIcon, dk && { backgroundColor: 'rgba(192,132,252,0.12)' }]}>
                 <User size={18} color={dk ? '#C084FC' : '#5A2D82'} />
@@ -144,12 +144,12 @@ export function ProfilePage() {
             <TouchableOpacity
               style={[styles.modalRow, dk && { borderBottomColor: 'rgba(255,255,255,0.07)' }]}
               activeOpacity={0.75}
-              onPress={() => { setIsSettingsOpen(false); Alert.alert('Istoric', 'Istoricul cumpărăturilor și vânzărilor — coming soon!'); }}
+              onPress={() => { setIsSettingsOpen(false); Alert.alert('Purchase & Sales History', 'This feature is coming soon.'); }}
             >
               <View style={[styles.modalRowIcon, dk && { backgroundColor: 'rgba(244,197,66,0.12)' }]}>
                 <Clock size={18} color={dk ? '#F4C542' : '#5A2D82'} />
               </View>
-              <Text style={[styles.modalRowLabel, dk && { color: '#FFFFFF' }]}>Istoric (cumpărări / vânzări)</Text>
+              <Text style={[styles.modalRowLabel, dk && { color: '#FFFFFF' }]}>Purchase & Sales History</Text>
               <ChevronRight size={18} color={dk ? 'rgba(255,255,255,0.3)' : 'rgba(43,43,43,0.3)'} />
             </TouchableOpacity>
 
@@ -277,11 +277,11 @@ export function ProfilePage() {
         <View style={[styles.statsBar, dk && { backgroundColor: '#2B2B2B', borderColor: 'rgba(255,255,255,0.05)' }]}>
           <View style={styles.statItem}>
             <View style={[styles.statIconCircle, { backgroundColor: dk ? 'rgba(142,68,173,0.18)' : 'rgba(90,45,130,0.1)' }]}>
-              <ArrowRightLeft size={14} color={dk ? '#8E44AD' : '#5A2D82'} />
+              <ShoppingBag size={14} color={dk ? '#8E44AD' : '#5A2D82'} />
             </View>
             <View style={styles.statTextContainer}>
-              <Text style={[styles.statNumber, dk && { color: '#FFFFFF' }]}>{user?.tradesCount || 0}</Text>
-              <Text style={[styles.statLabel, dk && { color: '#8E44AD' }]}>TRADES</Text>
+              <Text style={[styles.statNumber, dk && { color: '#FFFFFF' }]}>{user?.salesCount || 0}</Text>
+              <Text style={[styles.statLabel, dk && { color: '#8E44AD' }]}>SALES</Text>
             </View>
           </View>
 
@@ -289,11 +289,11 @@ export function ProfilePage() {
 
           <View style={styles.statItem}>
             <View style={[styles.statIconCircle, { backgroundColor: dk ? 'rgba(244,197,66,0.15)' : 'rgba(244,197,66,0.1)' }]}>
-              <Gift size={14} color="#F4C542" />
+              <Star size={14} color="#F4C542" />
             </View>
             <View style={styles.statTextContainer}>
-              <Text style={[styles.statNumber, dk && { color: '#FFFFFF' }]}>{user?.donationsCount || 0}</Text>
-              <Text style={[styles.statLabel, dk && { color: '#F4C542' }]}>DONATIONS</Text>
+              <Text style={[styles.statNumber, dk && { color: '#FFFFFF' }]}>{user?.reviewCount || 0}</Text>
+              <Text style={[styles.statLabel, dk && { color: '#F4C542' }]}>REVIEWS</Text>
             </View>
           </View>
 
@@ -304,10 +304,8 @@ export function ProfilePage() {
               <Sparkles size={14} color="#27AE60" />
             </View>
             <View style={styles.statTextContainer}>
-              <Text style={[styles.statNumber, dk && { color: '#FFFFFF' }]}>
-                {(user?.tradesCount || 0) + (user?.donationsCount || 0) + (user?.salesCount || 0)}
-              </Text>
-              <Text style={[styles.statLabel, dk && { color: '#27AE60' }]}>SAVED</Text>
+              <Text style={[styles.statNumber, dk && { color: '#FFFFFF' }]}>{closet.length}</Text>
+              <Text style={[styles.statLabel, dk && { color: '#27AE60' }]}>ITEMS</Text>
             </View>
           </View>
         </View>
@@ -316,8 +314,7 @@ export function ProfilePage() {
           <Sparkles size={16} color="#F4C542" />
           <Text style={styles.rankTitle}>Circular Rank:</Text>
           <Text style={styles.rankName}>
-            {((user?.tradesCount || 0) + (user?.donationsCount || 0) + (user?.salesCount || 0)) > 10
-              ? 'Eco Hero' : 'Eco Explorer'}
+            {(user?.salesCount || 0) > 10 ? 'Eco Hero' : 'Eco Explorer'}
           </Text>
         </View>
 
@@ -333,7 +330,7 @@ export function ProfilePage() {
 
           <TouchableOpacity
             style={[styles.editBtn, dk && { backgroundColor: '#2B2B2B', borderColor: 'rgba(255,255,255,0.08)' }]}
-            onPress={() => Alert.alert('Edit Profile', 'Coming soon!')}
+            onPress={() => Alert.alert('Edit Profile', 'Profile editing is coming soon.')}
           >
             <Text style={[styles.editBtnText, dk && { color: '#C084FC' }]}>EDIT</Text>
           </TouchableOpacity>
@@ -341,7 +338,7 @@ export function ProfilePage() {
 
         <View style={styles.galleryContainer}>
           <View style={styles.sectionTitleRow}>
-            <Text style={[styles.sectionTitle, dk && { color: '#FFFFFF' }]}>My Wardrobe ♻️</Text>
+            <Text style={[styles.sectionTitle, dk && { color: '#FFFFFF' }]}>My Wardrobe</Text>
             <View style={[styles.countBadge, dk && { backgroundColor: 'rgba(192,132,252,0.12)' }]}>
               <Text style={[styles.countText, dk && { color: '#C084FC' }]}>{closet.length} ITEMS</Text>
             </View>

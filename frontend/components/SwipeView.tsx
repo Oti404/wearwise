@@ -284,8 +284,8 @@ const SwipeView = () => {
               <Sparkles size={12} color="#5A2D82" />
               <Text style={styles.bgUploadText}>
                 {uploadProgress
-                  ? `Loading item... ${uploadProgress.current}/${uploadProgress.total}`
-                  : 'Finalizing addition...'}
+                  ? `Uploading... ${uploadProgress.current}/${uploadProgress.total}`
+                  : 'Finishing up...'}
               </Text>
             </View>
             {uploadProgress && (
@@ -365,11 +365,11 @@ const SwipeView = () => {
               <View style={styles.emptyIconBox}>
                 <RotateCcw size={38} color="#F4C542" />
               </View>
-              <Text style={styles.emptyTitle}>Wardrobe explored!</Text>
+              <Text style={styles.emptyTitle}>You're all caught up</Text>
               <Text style={styles.emptySubtitle}>
-                We checked everything within a radius of{' '}
-                <Text style={{ color: '#5A2D82', fontWeight: '900' }}>{radius}km</Text>.
-                {'\n'}Check back soon for updates!
+                All items within{' '}
+                <Text style={{ color: '#5A2D82', fontWeight: '900' }}>{radius}km</Text>
+                {' '}have been reviewed.{'\n'}Check back soon for new listings!
               </Text>
               <TouchableOpacity style={styles.resetBtn} onPress={resetDeck} activeOpacity={0.8}>
                 <Text style={styles.resetBtnText}>RELOAD FEED</Text>
@@ -387,8 +387,8 @@ const SwipeView = () => {
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <Users size={48} color="rgba(90,45,130,0.2)" />
-                <Text style={styles.emptyTitle}>Nothing yet...</Text>
-                <Text style={styles.emptySubtitle}>Follow users in the Network tab to see their items here!</Text>
+                <Text style={styles.emptyTitle}>Nothing here yet</Text>
+                <Text style={styles.emptySubtitle}>Follow users in the Network tab to see their listings here.</Text>
               </View>
             }
             renderItem={({ item }) => (
@@ -406,7 +406,7 @@ const SwipeView = () => {
                 <Image source={{ uri: item.primaryImage }} style={styles.feedImage} />
                 <View style={styles.feedInfo}>
                   <Text style={[styles.feedItemName, dk && styles.textDark]}>{item.name}</Text>
-                  <Text style={styles.feedItemPrice}>{item.price ? `${item.price} RON` : 'TRADE'}</Text>
+                  <Text style={styles.feedItemPrice}>{item.price ? `${item.price} RON` : '—'}</Text>
                 </View>
               </TouchableOpacity>
             )}

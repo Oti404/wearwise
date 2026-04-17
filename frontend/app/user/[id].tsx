@@ -139,7 +139,7 @@ export default function PublicProfileScreen() {
             
             <View style={styles.locationRow}>
               <MapPin size={12} color="#F4C542" />
-              <Text style={styles.locationText}>{profile.city || 'Digital Nomad'}</Text>
+              <Text style={styles.locationText}>{profile.city || 'Location not set'}</Text>
             </View>
 
             <View style={styles.ratingBadge}>
