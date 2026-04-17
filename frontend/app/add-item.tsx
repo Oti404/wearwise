@@ -13,12 +13,11 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Camera, Plus, X, Tag, Ruler, Info, DollarSign, Sparkles, MapPin, Check, AlertCircle } from 'lucide-react-native';
+import { Camera, Plus, X, Tag, Ruler, Info, DollarSign, Sparkles, Check, AlertCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { AuthButton } from '@/components/AuthUI';
 import { useClothes } from '@/hooks/useClothes';
-import { LocationPicker } from '@/components/LocationPicker';
 import { useAppStore } from '@/store/useAppStore';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -46,14 +45,12 @@ const AddItemScreen = () => {
     price: '',
     latitude: undefined as number | undefined,
     longitude: undefined as number | undefined,
-    address: '',
   });
 
   const [images, setImages] = useState<string[]>([]);
   const [imageValidations, setImageValidations] = useState<ImageValidation[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [autoFilled, setAutoFilled] = useState(false);
-  const [isMapVisible, setIsMapVisible] = useState(false);
 
   // Auto-fill location from user profile
   useEffect(() => {
@@ -62,7 +59,6 @@ const AddItemScreen = () => {
         ...prev,
         latitude: user.latitude,
         longitude: user.longitude,
-        address: 'Your profile location', // Fallback label
       }));
     }
   }, [user]);
@@ -171,9 +167,8 @@ const AddItemScreen = () => {
 
     setIsSaving(true);
     try {
-      const { address, ...cleanForm } = form;
       await addClothes({
-        ...cleanForm,
+        ...form,
         images,
         price: form.price ? parseFloat(form.price) : null,
       });
@@ -367,45 +362,6 @@ const AddItemScreen = () => {
                 </View>
               </View>
             </View>
-
-            <View style={styles.divider} />
-
-            {/* Location Section */}
-            <Text style={styles.smallSectionTitle}>Location</Text>
-            <TouchableOpacity 
-              style={styles.locationCard}
-              onPress={() => setIsMapVisible(true)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.locationIconBox}>
-                <MapPin size={22} color="#5A2D82" fill="#F4C542" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.locationTitle}>
-                  {form.address ? 'Location Set' : 'Choose Location on Map'}
-                </Text>
-                <Text style={styles.locationSubtitle} numberOfLines={1}>
-                  {form.address || 'Set a pickup or reference location for buyers.'}
-                </Text>
-              </View>
-              <View style={styles.arrowBox}>
-                 <Sparkles size={14} color="#F4C542" />
-              </View>
-            </TouchableOpacity>
-
-            <LocationPicker 
-              visible={isMapVisible}
-              onClose={() => setIsMapVisible(false)}
-              initialLocation={form.latitude ? { latitude: form.latitude, longitude: form.longitude!, address: form.address } : undefined}
-              onConfirm={(loc) => {
-                setForm({ 
-                  ...form, 
-                  latitude: loc.latitude, 
-                  longitude: loc.longitude, 
-                  address: loc.address,
-                });
-              }}
-            />
 
             <View style={styles.divider} />
 
@@ -694,55 +650,6 @@ const styles = StyleSheet.create({
     height: 1.5,
     backgroundColor: 'rgba(90, 45, 130, 0.05)',
     marginVertical: 24,
-  },
-  smallSectionTitle: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#5A2D82',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 16,
-  },
-  locationCard: {
-    backgroundColor: '#FAF7F2',
-    borderRadius: 24,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    borderWidth: 1.5,
-    borderColor: 'rgba(244, 197, 66, 0.2)',
-  },
-  locationIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: '#FFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#F4C542',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-  },
-  locationTitle: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#2B2B2B',
-  },
-  locationSubtitle: {
-    fontSize: 11,
-    color: 'rgba(43, 43, 43, 0.4)',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  arrowBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: 'rgba(90, 45, 130, 0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   priceGroup: {
     marginTop: 24,
