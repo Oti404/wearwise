@@ -9,15 +9,7 @@ const { db } = require('../drizzle/db');
 const { clothes, clothingImages, users } = require('../drizzle/schema');
 const { eq, desc, ne, and, lt, or } = require('drizzle-orm');
 const AppError = require('../middlewares/AppError');
-const storageService = require('./storageService');
 const { supabase } = require('../config/supabase');
-
-/**
- * Upload a base64 image to Supabase Storage and return its public URL.
- */
-async function uploadImageToStorage(base64Data, mimeType, fileName) {
-    return await storageService.uploadImage(base64Data, mimeType, fileName);
-}
 
 /**
  * GET paginated active clothes feed.
@@ -161,15 +153,8 @@ async function createClothesItem(authUid, data) {
         sqlUser = created;
     }
 
-    // Upload images if base64 provided
-    let imageUrls = data.images || [];
-    if (imageUrls.length > 0 && imageUrls[0]?.base64) {
-        imageUrls = await Promise.all(
-            imageUrls.map((img, i) =>
-                uploadImageToStorage(img.base64, img.mimeType || 'image/jpeg', `item_${i}.jpg`)
-            )
-        );
-    }
+    // Images are uploaded beforehand via POST /uploads; only their URLs arrive here.
+    const imageUrls = data.images || [];
 
     return await db.transaction(async (tx) => {
         const [newCloth] = await tx.insert(clothes).values({
@@ -189,7 +174,7 @@ async function createClothesItem(authUid, data) {
         if (imageUrls.length > 0) {
             const imageRecords = imageUrls.map((url, index) => ({
                 clothingId: newCloth.id,
-                url: typeof url === 'string' ? url : url,
+                url,
                 isPrimary: index === 0,
             }));
             await tx.insert(clothingImages).values(imageRecords);

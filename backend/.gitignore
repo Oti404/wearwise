@@ -38,3 +38,5 @@ logs/
 Thumbs.db
 
 serviceAccountKey.json
+# User-uploaded images (Docker volume in production)
+uploads/

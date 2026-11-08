@@ -24,4 +24,15 @@ const writeLimiter = rateLimit({
   message: { error: 'Prea multe cereri. Încearcă din nou peste 15 minute.' },
 });
 
-module.exports = { generalLimiter, writeLimiter };
+/**
+ * Upload limiter – 60 images per 15 minutes per IP (a listing can carry several photos).
+ */
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many uploads. Try again in 15 minutes.' },
+});
+
+module.exports = { generalLimiter, writeLimiter, uploadLimiter };

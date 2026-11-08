@@ -12,6 +12,7 @@ const { generalLimiter } = require('./config/rateLimit');
 const requestLogger = require('./middlewares/requestLogger');
 const errorHandler = require('./middlewares/errorHandler');
 const AppError = require('./middlewares/AppError');
+const { uploadDir } = require('./config/storage');
 
 // Route modules
 const authRoutes = require('./routes/authRoutes');
@@ -22,12 +23,22 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const ratingRoutes = require('./routes/ratingRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const followRoutes = require('./routes/followRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
 
 // ── Security ──────────────────────────────────────────────────────────────────
 app.use(helmet());
 app.use(cors(corsOptions));
+
+// ── Uploaded images ───────────────────────────────────────────────────────────
+// Mounted before rate limiting and logging: a single feed page loads many images.
+// Files have random immutable names, so they can be cached aggressively.
+app.use('/uploads', (req, res, next) => {
+  // helmet defaults to same-origin; the frontend lives on another origin and must be able to load images.
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(uploadDir, { index: false, dotfiles: 'ignore', immutable: true, maxAge: '30d' }));
 
 // ── Body parsing ──────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '5mb' }));
@@ -43,6 +54,7 @@ app.get('/ping', (req, res) => res.json({ status: 'ok', timestamp: new Date().to
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/auth', authRoutes);
+app.use('/uploads', uploadRoutes);
 app.use('/', userRoutes);
 app.use('/', clothesRoutes);
 app.use('/', checkoutRoutes);

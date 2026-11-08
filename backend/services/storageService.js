@@ -1,66 +1,42 @@
 'use strict';
 
-const { supabase } = require('../config/supabase');
+/**
+ * STORAGE SERVICE — images saved to the local uploads directory (a Docker volume in production)
+ * and served by the backend under /uploads.
+ */
+
+const crypto = require('crypto');
+const fs = require('fs/promises');
+const path = require('path');
+
 const AppError = require('../middlewares/AppError');
+const { uploadDir, publicApiUrl } = require('../config/storage');
 
-/**
- * Upload a base64 image to Supabase Storage.
- * @param {string} base64Data 
- * @param {string} mimeType 
- * @param {string} fileName 
- * @returns {Promise<string>} Public URL of the uploaded image
- */
-async function uploadImage(base64Data, mimeType, fileName) {
-    if (!base64Data) return null;
+// The client-supplied MIME type can't be trusted, so the type is detected from the file's magic bytes.
+const SIGNATURES = [
+  { ext: 'jpg', matches: (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff },
+  { ext: 'png', matches: (b) => b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) },
+  { ext: 'webp', matches: (b) => b.subarray(0, 4).toString('ascii') === 'RIFF' && b.subarray(8, 12).toString('ascii') === 'WEBP' },
+];
 
-    try {
-        const buffer = Buffer.from(base64Data, 'base64');
-        const bucketName = 'clothes';
-        const filePath = `${Date.now()}_${fileName}`;
-
-        const { data, error } = await supabase.storage
-            .from(bucketName)
-            .upload(filePath, buffer, {
-                contentType: mimeType,
-                upsert: true
-            });
-
-        if (error) {
-            console.error('[Supabase Storage] ❌ Upload error:', error.message);
-            throw new AppError(`Eroare la încărcarea imaginii: ${error.message}`, 500);
-        }
-
-        const { data: publicUrlData } = supabase.storage
-            .from(bucketName)
-            .getPublicUrl(filePath);
-
-        return publicUrlData.publicUrl;
-    } catch (err) {
-        if (err instanceof AppError) throw err;
-        throw new AppError('Eroare internă la procesarea imaginii.', 500);
-    }
+function detectImageExtension(buffer) {
+  if (!buffer || buffer.length < 12) return null;
+  return SIGNATURES.find((sig) => sig.matches(buffer))?.ext ?? null;
 }
 
 /**
- * Delete an image from Supabase Storage.
- * @param {string} url 
+ * @param {Buffer} buffer Raw file bytes
+ * @returns {Promise<string>} Absolute public URL of the stored image
  */
-async function deleteImage(url) {
-    try {
-        const bucketName = 'clothes';
-        // Extract filename from public URL
-        const fileName = url.split('/').pop();
-        
-        const { error } = await supabase.storage
-            .from(bucketName)
-            .remove([fileName]);
+async function saveImage(buffer) {
+  const ext = detectImageExtension(buffer);
+  if (!ext) throw new AppError('Only JPEG, PNG and WebP images are allowed.', 400);
 
-        if (error) {
-            console.error('[Supabase Storage] ❌ Delete error:', error.message);
-        }
-    } catch (err) {
-        console.error('[Supabase Storage] ❌ Delete catch error:', err.message);
-    }
+  // Random names: unguessable and never derived from user input (no path traversal).
+  const fileName = `${crypto.randomUUID()}.${ext}`;
+  await fs.writeFile(path.join(uploadDir, fileName), buffer, { flag: 'wx' });
+
+  return `${publicApiUrl}/uploads/${fileName}`;
 }
 
-module.exports = { uploadImage, deleteImage };
+module.exports = { saveImage, detectImageExtension };
