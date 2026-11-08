@@ -82,12 +82,9 @@ Maintaining structural discipline throughout the monorepo is mandatory. Each mod
   /assets        -> Static images, fonts, icons
   /components    -> Reusable React Native UI components (buttons, cards)
   /config        -> API client (base URL, token storage, uploads)
-  /constants     -> Static immutable variables
   /hooks         -> Custom React hooks dealing with component state
   /store         -> Zustand configuration and store actions
-  /public        -> Static files served as-is by the web build
   /deploy        -> nginx configuration for the production image
-  /scripts       -> Expo template helper (reset-project.js)
 
 /backend
   /config        -> Centralized config (auth, CORS, rate limits, storage)
@@ -99,7 +96,6 @@ Maintaining structural discipline throughout the monorepo is mandatory. Each mod
   /routes        -> Express.js route declarations
   /services      -> Heavy lifting, orchestrating API and database behaviors
   /validators    -> Request payload schemas
-  /utils         -> Shared helpers (logger, response helpers, error codes)
   /tests         -> Integration tests (node:test, real Postgres)
 
 /ai_engine       -> Flat Python module (FastAPI)

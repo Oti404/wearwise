@@ -1,41 +1,26 @@
-# ─── Node.js / Dependințe ───
+# Dependencies
 node_modules/
 npm-debug.log
 yarn-debug.log
 yarn-error.log
 yarn.lock
-# ─── Variabile de mediu (SECRETE) ───
+
+# Environment (secrets)
 .env
 .env.*
 !.env.example
 
-# ─── Expo / React Native (Frontend) ───
-.expo/
-dist/
-web-build/
-build/
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# ─── Firebase ───
-firebase-debug.log
-firebase-debug.*.log
-
-# ─── Build-uri și loguri de Backend ───
-coverage/
-out/
+# Logs and build output
 logs/
 *.log
+coverage/
+out/
 
-# ─── Editor de cod / Sistem de operare ───
+# User-uploaded images (Docker volume in production)
+uploads/
+
+# Editor / OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
-
-serviceAccountKey.json
-# User-uploaded images (Docker volume in production)
-uploads/
