@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { supabase } from '@/config/supabaseClient';
+import { API_URL, authHeaders, errorMessage, uploadImage } from '@/config/apiClient';
 import { useAppStore } from '@/store/useAppStore';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export interface User {
   uid: string;
@@ -23,52 +21,18 @@ export const useUser = () => {
   const [error, setError] = useState<string | null>(null);
   const login = useAppStore((state) => state.login);
 
-  /**
-   * Uploads a single local image URI to Supabase Storage for the profile avatar.
-   */
-  const uploadAvatarImage = async (localUri: string, userId: string): Promise<string> => {
-    const timestamp = Date.now();
-    const fileName = `avatar_${timestamp}.jpg`;
-    const filePath = `${userId}/${fileName}`;
-    
-    console.log(`[useUser] Uploading avatar to Supabase at: avatars/${filePath}`);
-
-    try {
-      const response = await fetch(localUri);
-      const blob = await response.blob();
-      
-      const { data, error: storageError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, blob, {
-          contentType: 'image/jpeg',
-          upsert: true
-        });
-        
-      if (storageError) throw storageError;
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-        
-      return publicUrl;
-    } catch (err: any) {
-      console.error('[useUser] uploadAvatarImage error:', err.message);
-      throw err;
-    }
-  };
-
   const updateProfile = async (uid: string, updates: Partial<User>) => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch(`${API_URL}/user/${uid}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify(updates),
       });
 
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Eroare la actualizarea profilului.');
+      if (!response.ok) throw new Error(errorMessage(result, 'Could not update your profile.'));
 
       login(result);
       return result;
@@ -84,7 +48,7 @@ export const useUser = () => {
     setLoading(true);
     setError(null);
     try {
-      const downloadUrl = await uploadAvatarImage(localUri, uid);
+      const downloadUrl = await uploadImage(localUri);
       return await updateProfile(uid, { avatarUrl: downloadUrl });
     } catch (err: any) {
       setError(err.message);

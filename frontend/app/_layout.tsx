@@ -6,7 +6,7 @@ import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-rout
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
-import { supabase } from '@/config/supabaseClient';
+import { API_URL, getAuthToken, clearAuthToken } from '@/config/apiClient';
 import { useAppStore } from '@/store/useAppStore';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useFonts, Quicksand_400Regular, Quicksand_500Medium, Quicksand_700Bold } from '@expo-google-fonts/quicksand';
@@ -22,10 +22,7 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-// URL-ul tău oficial de backend pe Render
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
-
-// Loading screen shown while Firebase resolves session
+// Loading screen shown while the stored session is verified
 function AuthLoadingScreen() {
   return (
     <View style={loadingStyles.container}>
@@ -33,7 +30,7 @@ function AuthLoadingScreen() {
         <Text style={loadingStyles.brandAccent}>W</Text>ear<Text style={loadingStyles.brandAccent}>W</Text>ise
       </Text>
       <ActivityIndicator size="large" color="#5A2D82" style={{ marginTop: 24 }} />
-      <Text style={loadingStyles.subtitle}>Se verifică sesiunea...</Text>
+      <Text style={loadingStyles.subtitle}>Checking your session...</Text>
     </View>
   );
 }
@@ -124,63 +121,44 @@ export default function RootLayout() {
     setIsLayoutMounted(true);
   }, []);
 
+  // Restore the session from the stored token. Login/logout afterwards go through useAuth,
+  // which updates the store directly, so no auth listener is needed.
   useEffect(() => {
-    console.log('[Layout] Setting up Supabase auth listener...');
-    
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      handleAuthChange(session?.user ?? null);
-    });
+    let cancelled = false;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('[Layout] Auth state changed. Event:', _event);
-      handleAuthChange(session?.user ?? null);
-    });
-
-    async function handleAuthChange(user: any) {
-      console.log('[Layout] Handling auth change. User ID:', user?.id ?? 'null');
-
-      if (user) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); 
-
-        try {
-          console.log('[Layout] Fetching profile from backend for ID:', user.id);
-          
-          const response = await fetch(`${API_URL}/user/${user.id}`, { 
-            signal: controller.signal 
-          });
-          
-          clearTimeout(timeoutId);
-          const profileData = await response.json();
-
-          if (response.ok) {
-            login(profileData);
-          } else {
-            // Fallback for new users or sync issues
-            login({
-              uid: user.id,
-              email: user.email,
-              firstName: user.user_metadata?.first_name || '',
-              lastName: user.user_metadata?.last_name || '',
-              phone: '', country: '', city: '', address: '',
-            });
-          }
-        } catch (error: any) {
-          clearTimeout(timeoutId);
-          login({
-            uid: user.id,
-            email: user.email,
-            firstName: '', lastName: '', phone: '', country: '', city: '', address: '',
-          });
-        }
-      } else {
+    (async () => {
+      const token = await getAuthToken();
+      if (!token) {
         logout();
+        if (!cancelled) setIsAuthLoading(false);
+        return;
       }
-      setIsAuthLoading(false);
-    }
 
-    return () => subscription.unsubscribe();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      try {
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
+        if (response.ok) {
+          const { user } = await response.json();
+          login(user);
+        } else if (response.status === 401) {
+          // Expired or revoked token: force a fresh sign-in.
+          await clearAuthToken();
+          logout();
+        }
+      } catch {
+        // Network error or timeout: keep the persisted profile so the app still opens offline.
+        console.warn('[Layout] Could not verify session; using cached profile.');
+      } finally {
+        clearTimeout(timeoutId);
+        if (!cancelled) setIsAuthLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {

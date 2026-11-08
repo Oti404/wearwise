@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { Platform } from 'react-native';
 import { useAppStore } from '@/store/useAppStore';
-import { supabase } from '@/config/supabaseClient';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+import { API_URL, authHeaders, errorMessage, uploadImage } from '@/config/apiClient';
 
 export interface ClothingItem {
   id?: string;
@@ -23,44 +21,12 @@ export interface ClothingItem {
   latitude?: number;
   longitude?: number;
   owner?: {
+    id?: string;
     firstName: string;
     lastName: string;
     avatarUrl?: string;
   };
 }
-
-/**
- * Uploads a single local image URI to Supabase Storage.
- */
-const uploadSingleImage = async (
-  localUri: string,
-  userId: string,
-  index: number
-): Promise<string> => {
-  const timestamp = Date.now();
-  const fileName = `${timestamp}_${index}.jpg`;
-  const filePath = `${userId}/${fileName}`;
-  
-  console.log(`[useClothes] Uploading image to Supabase at: clothes/${filePath}`);
-
-  const response = await fetch(localUri);
-  const blob = await response.blob();
-  
-  const { data, error } = await supabase.storage
-    .from('clothes')
-    .upload(filePath, blob, {
-      contentType: 'image/jpeg',
-      upsert: true
-    });
-    
-  if (error) throw error;
-  
-  const { data: { publicUrl } } = supabase.storage
-    .from('clothes')
-    .getPublicUrl(filePath);
-    
-  return publicUrl;
-};
 
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
   const R = 6371;
@@ -84,7 +50,7 @@ export const useClothes = () => {
   const setAddingItem = useAppStore((state) => state.setAddingItem);
   const setGlobalUploadProgress = useAppStore((state) => state.setUploadProgress);
 
-  const uploadImages = async (localUris: string[], userId: string): Promise<string[]> => {
+  const uploadImages = async (localUris: string[]): Promise<string[]> => {
     const downloadUrls: string[] = [];
     const progress = { current: 0, total: localUris.length };
     setUploadProgress(progress);
@@ -95,7 +61,7 @@ export const useClothes = () => {
       if (uri.startsWith('http')) {
         downloadUrls.push(uri);
       } else {
-        const url = await uploadSingleImage(uri, userId, i);
+        const url = await uploadImage(uri);
         downloadUrls.push(url);
       }
       const newProgress = { current: i + 1, total: localUris.length };
@@ -118,15 +84,11 @@ export const useClothes = () => {
     setAddingItem(true);
     setError(null);
     try {
-      const imageUrls = await uploadImages(data.images, user.uid);
+      const imageUrls = await uploadImages(data.images);
 
-      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(`${API_URL}/clothes`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-        },
+        headers: await authHeaders(),
         body: JSON.stringify({
           userId: user.uid,
           ...data,
@@ -135,7 +97,7 @@ export const useClothes = () => {
       });
 
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Error saving clothing item.');
+      if (!response.ok) throw new Error(errorMessage(result, 'Error saving clothing item.'));
       return result;
     } catch (err: any) {
       setError(err.message);
@@ -214,11 +176,11 @@ export const useClothes = () => {
     try {
       const response = await fetch(`${API_URL}/checkout`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify({ userId, items }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
+      if (!response.ok) throw new Error(errorMessage(result, 'Request failed.'));
       return result;
     } catch (err: any) {
       setError(err.message);
@@ -234,11 +196,11 @@ export const useClothes = () => {
     try {
       const response = await fetch(`${API_URL}/re-list`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify({ userId, itemId, updates }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
+      if (!response.ok) throw new Error(errorMessage(result, 'Request failed.'));
       return result;
     } catch (err: any) {
       setError(err.message);
@@ -267,11 +229,11 @@ export const useClothes = () => {
     try {
       const response = await fetch(`${API_URL}/ratings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify(ratingData),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
+      if (!response.ok) throw new Error(errorMessage(result, 'Request failed.'));
       return result;
     } catch (err: any) {
       setError(err.message);

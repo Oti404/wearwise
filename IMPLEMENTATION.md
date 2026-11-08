@@ -206,12 +206,12 @@ Also removed in Step 1 (2026-11-08): the Render/HF deploy path (`render.yaml`, `
 ## Step 3 — Frontend: web-only, backend auth and uploads
 | # | File | Change |
 |---|------|--------|
-| 1 | `frontend/config/apiClient.ts` (new) replaces `config/supabaseClient.ts` | `fetch` wrapper adding `Authorization: Bearer <token>`; token stored in `AsyncStorage` (localStorage on web) |
-| 2 | `hooks/useAuth.ts`, `app/_layout.tsx` | Register/login/logout call `/auth/*`; session restored from the stored token via `GET /auth/me` instead of `supabase.auth.getSession/onAuthStateChange`. Register becomes one request (the current two-step Supabase signUp + `/register` goes away) |
-| 3 | `hooks/useClothes.ts`, `hooks/useUser.ts`, `hooks/useFollow.ts` | Image uploads → `POST /uploads` (multipart); token from apiClient |
-| 4 | Delete `components/LocationPicker.tsx` (native, `react-native-maps`), `components/haptic-tab.tsx` (unused), `eas.json` | Native-only; `LocationPicker.web.tsx` becomes the only implementation |
-| 5 | `package.json` | Remove `@supabase/supabase-js`, `react-native-maps`, `expo-haptics`, `react-native-image-picker`, `react-native-image-resizer`, `expo-symbols`. Keep `expo-image-picker`, deck-swiper and slider (they work on web) |
-| 6 | `app.json` | Remove `ios`/`android` blocks (Vercel deep links), set `web.output`, update origin to the new domain |
+| 1 | `frontend/config/apiClient.ts` (new) replaces `config/supabaseClient.ts` | **DONE.** `fetch` wrapper adding `Authorization: Bearer <token>`; token stored in `AsyncStorage` (localStorage on web) |
+| 2 | `hooks/useAuth.ts`, `app/_layout.tsx` | **DONE.** Register/login/logout call `/auth/*`; session restored from the stored token via `GET /auth/me` instead of `supabase.auth.getSession/onAuthStateChange`. Register becomes one request (the current two-step Supabase signUp + `/register` goes away) |
+| 3 | `hooks/useClothes.ts`, `hooks/useUser.ts`, `hooks/useFollow.ts` | **DONE.** [C] checkout, re-list, ratings and profile PATCH now send the token — they never did, so those calls always got 401. Image uploads → `POST /uploads` (multipart); token from apiClient |
+| 4 | Delete `components/LocationPicker.tsx` (native, `react-native-maps`), `components/haptic-tab.tsx` (unused), `eas.json` | **DONE.** [C] `LocationPicker.web.tsx` renamed to `LocationPicker.tsx` (TypeScript does not resolve platform suffixes). Native-only; `LocationPicker.web.tsx` becomes the only implementation |
+| 5 | `package.json` | **DONE.** Remove `@supabase/supabase-js`, `react-native-maps`, `expo-haptics`, `react-native-image-picker`, `react-native-image-resizer`, `expo-symbols`. Keep `expo-image-picker`, deck-swiper and slider (they work on web) |
+| 6 | `app.json` | **DONE** (`platforms: ["web"]`; Render origin and EAS project id removed; domain added in Step 4). Remove `ios`/`android` blocks (Vercel deep links), set `web.output`, update origin to the new domain |
 
 ## Step 4 — Production Docker stack
 Target: one Linux VPS (min. 2 vCPU / 4 GB RAM — CLIP + torch need ~1.5–2 GB resident), Docker + Compose plugin.

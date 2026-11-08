@@ -1,44 +1,13 @@
 {
   "expo": {
-    "name": "WearWiseApp",
+    "name": "WearWise",
     "slug": "WearWiseApp",
     "version": "1.0.0",
-    "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "wearwiseapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true,
-      "associatedDomains": [
-        "applinks:wearwise-web.vercel.app"
-      ]
-    },
-    "android": {
-      "package": "com.wearwiseapp.app",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#E6F4FE"
-      },
-      "edgeToEdgeEnabled": true,
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "autoVerify": true,
-          "data": [
-            {
-              "scheme": "https",
-              "host": "wearwise-web.vercel.app",
-              "pathPrefix": "/"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        }
-      ]
-    },
+    "platforms": ["web"],
     "web": {
       "output": "single",
       "favicon": "./assets/images/favicon.png",
@@ -62,14 +31,6 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    },
-    "extra": {
-      "router": {
-        "origin": "https://wearwise-frontend-foeu.onrender.com"
-      },
-      "eas": {
-        "projectId": "d8cd016f-a91f-41c2-b8ab-ee08ac879570"
-      }
     }
   }
 }

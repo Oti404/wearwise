@@ -1,15 +1,6 @@
 import { useState } from 'react';
-import { supabase } from '@/config/supabaseClient';
+import { API_URL, setAuthToken, clearAuthToken, errorMessage } from '@/config/apiClient';
 import { useAppStore } from '@/store/useAppStore';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
-
-const getErrorMessage = (err: any) => {
-  if (err.message && err.message.includes('invalid-credential')) {
-    return 'Credentiale invalide.';
-  }
-  return err.message || 'A apărut o eroare neașteptată.';
-};
 
 export const useAuth = () => {
   const [loading, setLoading] = useState(false);
@@ -17,7 +8,30 @@ export const useAuth = () => {
   const loginAppStore = useAppStore((state) => state.login);
   const logoutAppStore = useAppStore((state) => state.logout);
 
-  const signUp = async (data: {
+  /** Stores the session returned by /auth/register or /auth/login. */
+  const startSession = async (response: Response, fallback: string) => {
+    const result = await response.json();
+    if (!response.ok) throw new Error(errorMessage(result, fallback));
+    await setAuthToken(result.token);
+    loginAppStore(result.user);
+    return result.user;
+  };
+
+  const run = async <T,>(action: () => Promise<T>): Promise<T> => {
+    setLoading(true);
+    setError(null);
+    try {
+      return await action();
+    } catch (err: any) {
+      const msg = err?.message || 'An unexpected error occurred.';
+      setError(msg);
+      throw new Error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signUp = (data: {
     firstName: string;
     lastName: string;
     email: string;
@@ -28,105 +42,45 @@ export const useAuth = () => {
     phone: string;
     latitude?: number;
     longitude?: number;
-  }) => {
-    setLoading(true);
-    setError(null);
-    try {
-      // 1. Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+  }) => run(async () => {
+    const response = await fetch(`${API_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         email: data.email,
         password: data.parola,
-        options: {
-          data: {
-            first_name: data.firstName,
-            last_name: data.lastName,
-          }
-        }
-      });
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+        city: data.localitate,
+      }),
+    });
+    return startSession(response, 'Could not create your account.');
+  });
 
-      if (authError) throw authError;
-      const user = authData.user;
-      if (!user) throw new Error('Error creating account.');
+  const signIn = (identifier: string, parola: string) => run(async () => {
+    let email = identifier;
 
-      console.log('[useAuth] Calling backend /register...');
-      const response = await fetch(`${API_URL}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          uid: user.id,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          phone: data.phone,
-          country: data.tara,
-          city: data.localitate,
-          address: data.adresa,
-          latitude: data.latitude,
-          longitude: data.longitude,
-        }),
-      });
-
+    // Phone sign-in: resolve the phone number to the account email first.
+    if (!identifier.includes('@')) {
+      const response = await fetch(`${API_URL}/user/${encodeURIComponent(identifier)}`);
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Error registering profile.');
-
-      loginAppStore(result.userData);
-      return result.userData;
-    } catch (err: any) {
-      const msg = getErrorMessage(err);
-      setError(msg);
-      throw new Error(msg);
-    } finally {
-      setLoading(false);
+      if (!response.ok) throw new Error('Phone number not found.');
+      email = result.email;
     }
-  };
 
-  const signIn = async (identifier: string, parola: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      let email = identifier;
-
-      if (!identifier.includes('@')) {
-        const response = await fetch(`${API_URL}/user/${identifier}`);
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Phone number not found.');
-        email = result.email;
-      }
-
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password: parola,
-      });
-
-      if (authError) throw authError;
-
-      const profileResponse = await fetch(`${API_URL}/user/${data.user.id}`);
-      const profileData = await profileResponse.json();
-      
-      if (profileResponse.ok) {
-        loginAppStore(profileData);
-        return profileData;
-      } else {
-        throw new Error('User data not found.');
-      }
-    } catch (err: any) {
-      const msg = getErrorMessage(err);
-      setError(msg);
-      throw new Error(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: parola }),
+    });
+    return startSession(response, 'Invalid email or password.');
+  });
 
   const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      logoutAppStore();
-    } catch (err: any) {
-      setError(getErrorMessage(err));
-    }
+    await clearAuthToken();
+    logoutAppStore();
   };
 
   return { signUp, signIn, signOut, loading, error };
 };
-

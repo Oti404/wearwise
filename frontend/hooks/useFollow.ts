@@ -1,21 +1,13 @@
 import { useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
-import { supabase } from '@/config/supabaseClient';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+import { API_URL, authHeaders, errorMessage } from '@/config/apiClient';
 
 export const useFollow = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const user = useAppStore((state) => state.user);
 
-  const getAuthHeader = async (): Promise<Record<string, string>> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return {
-      'Content-Type': 'application/json',
-      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-    };
-  };
+  const getAuthHeader = authHeaders;
 
   const followUser = async (followedUserId: string) => {
     setLoading(true);
@@ -27,7 +19,7 @@ export const useFollow = () => {
         body: JSON.stringify({ followedUserId }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
+      if (!response.ok) throw new Error(errorMessage(result, 'Request failed.'));
       return result;
     } catch (err: any) {
       setError(err.message);
@@ -47,7 +39,7 @@ export const useFollow = () => {
         body: JSON.stringify({ followedUserId }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
+      if (!response.ok) throw new Error(errorMessage(result, 'Request failed.'));
       return result;
     } catch (err: any) {
       setError(err.message);
@@ -64,7 +56,7 @@ export const useFollow = () => {
         headers: await getAuthHeader()
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
+      if (!response.ok) throw new Error(errorMessage(result, 'Request failed.'));
       return result.isFollowing;
     } catch (err: any) {
       setError(err.message);
@@ -82,7 +74,7 @@ export const useFollow = () => {
         headers: await getAuthHeader()
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
+      if (!response.ok) throw new Error(errorMessage(result, 'Request failed.'));
       return result;
     } catch (err: any) {
       setError(err.message);
@@ -99,7 +91,7 @@ export const useFollow = () => {
         headers: await getAuthHeader()
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
+      if (!response.ok) throw new Error(errorMessage(result, 'Request failed.'));
       return result;
     } catch (err: any) {
       setError(err.message);
@@ -116,7 +108,7 @@ export const useFollow = () => {
         headers: await getAuthHeader()
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
+      if (!response.ok) throw new Error(errorMessage(result, 'Request failed.'));
       return result;
     } catch (err: any) {
       setError(err.message);
@@ -131,7 +123,7 @@ export const useFollow = () => {
     try {
       const response = await fetch(`${API_URL}/follows/public-profile/${userId}`);
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
+      if (!response.ok) throw new Error(errorMessage(result, 'Request failed.'));
       return result;
     } catch (err: any) {
       setError(err.message);
