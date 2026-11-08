@@ -19,9 +19,19 @@ updates:
     directory: /ai_engine
     schedule: { interval: weekly }
     open-pull-requests-limit: 3
+    # torch and torchvision are released as matching pairs (also pinned in the Dockerfile); bump them together.
+    groups:
+      pytorch:
+        patterns: ["torch", "torchvision"]
   - package-ecosystem: docker
     directories: ["/backend", "/frontend", "/ai_engine"]
     schedule: { interval: weekly }
+    ignore:
+      # Stay on LTS lines (Node 24, Python 3.12); runtime upgrades are planned, not automatic.
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "python"
+        update-types: ["version-update:semver-minor"]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
