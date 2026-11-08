@@ -1,37 +1,27 @@
-# Weekly dependency update PRs; security fixes are opened as soon as advisories are published.
+# Dependency policy:
+# - npm, pip and Docker: SECURITY UPDATES ONLY. open-pull-requests-limit: 0 turns off routine version
+#   bumps, while security PRs still arrive (requires "Dependabot security updates" in repo settings).
+#   Routine bumps (especially Expo SDK, torch, major versions) are done deliberately and tested together.
+# - GitHub Actions: routine weekly updates (low risk, keeps CI off deprecated runtimes).
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /backend
     schedule: { interval: weekly }
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
   - package-ecosystem: npm
     directory: /frontend
     schedule: { interval: weekly }
-    open-pull-requests-limit: 5
-    # Expo pins compatible versions per SDK; upgrade the SDK deliberately instead of package by package.
-    ignore:
-      - dependency-name: "expo*"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "react-native*"
-        update-types: ["version-update:semver-major"]
+    open-pull-requests-limit: 0
   - package-ecosystem: pip
     directory: /ai_engine
     schedule: { interval: weekly }
-    open-pull-requests-limit: 3
-    # torch and torchvision are released as matching pairs (also pinned in the Dockerfile); bump them together.
-    groups:
-      pytorch:
-        patterns: ["torch", "torchvision"]
+    open-pull-requests-limit: 0
   - package-ecosystem: docker
     directories: ["/backend", "/frontend", "/ai_engine"]
     schedule: { interval: weekly }
-    ignore:
-      # Stay on LTS lines (Node 24, Python 3.12); runtime upgrades are planned, not automatic.
-      - dependency-name: "node"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "python"
-        update-types: ["version-update:semver-minor"]
+    open-pull-requests-limit: 0
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    open-pull-requests-limit: 3

@@ -4,11 +4,11 @@
   "main": "server.js",
   "scripts": {
     "start": "node drizzle/migrate.js && node server.js",
-    "test": "node --test tests/integration/",
+    "test": "node --test \"tests/integration/*.test.js\"",
     "dev": "node drizzle/migrate.js && nodemon server.js",
     "migrate": "node drizzle/migrate.js",
     "seed": "node database/seeds/seed.js",
-    "test:integration": "node --test tests/integration/",
+    "test:integration": "node --test \"tests/integration/*.test.js\"",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
