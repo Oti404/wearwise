@@ -213,14 +213,28 @@ Also removed in Step 1 (2026-11-08): the Render/HF deploy path (`render.yaml`, `
 | 5 | `package.json` | **DONE.** Remove `@supabase/supabase-js`, `react-native-maps`, `expo-haptics`, `react-native-image-picker`, `react-native-image-resizer`, `expo-symbols`. Keep `expo-image-picker`, deck-swiper and slider (they work on web) |
 | 6 | `app.json` | **DONE** (`platforms: ["web"]`; Render origin and EAS project id removed; domain added in Step 4). Remove `ios`/`android` blocks (Vercel deep links), set `web.output`, update origin to the new domain |
 
+## Step 3b — AI engine hardening (2026-11-08)
+| # | File | Change |
+|---|------|--------|
+| 1 | `ai_engine/Dockerfile` | **DONE.** Python 3.12 (3.10 reached end-of-life in Oct 2026); CPU-only torch; no `git` in the image; build fails if the checkpoint is a Git LFS pointer; `HF_HUB_OFFLINE=1` at runtime; `HEALTHCHECK` on `/health` `ready` |
+| 2 | `ai_engine/requirements.txt`, `requirements-dev.txt` (new) | **DONE.** Pinned to the versions verified locally; removed the unused `openai/CLIP` git package plus `accelerate`, `ftfy`, `regex`; training-only `tqdm` moved to dev requirements |
+| 3 | `ai_engine/service.py` | **DONE.** Removed `/classify/path` (unused; it could probe arbitrary server paths); 5 MB limit on `/classify/file` (413); one CLIP encoding shared by type and safety prediction; readiness requires both models |
+| 4 | `ai_engine/binary_clothing_model.py`, `hybrid_classifier.py`, `classifier.py` | **DONE.** [C] Inference built MobileNet with `weights=DEFAULT`, downloading ImageNet weights on the first request only to overwrite them with the checkpoint; now `pretrained=False`. Exposed module-level `build_binary_model` (the training script imported it but it did not exist). Binary model is loaded eagerly at startup |
+| 5 | `backend/routes/aiRoutes.js`, `services/aiService.js` | **DONE.** `/ai/analyze` now requires a token, uses `uploadLimiter` and a 5 MB limit; `HF_TOKEN` header dropped; engine 400/413 passed through instead of masked as 503. Frontend `add-item.tsx` sends the token. Tests: `tests/integration/ai.test.js` |
+| 6 | Cleanup | **DONE.** Deleted dead `config.py`, `utils/logger.py`, `backend/scripts/test_ai_connection.js` (Hugging Face Spaces probe); `.dockerignore` excludes training tools, datasets and venvs; README rewritten in English |
+| 7 | `.github/workflows/ci.yml` | **DONE.** AI job checks out LFS, builds the image and waits for `/health` → `ready: true` (old job used Python 3.9, which cannot run this code) |
+- [C] Not done: image embeddings are never stored, so `clothing_images.ai_embedding` and `get_similar_clothes` are unused. Wiring "similar items" is a post-launch feature.
+- [C] Deploy note: the VPS needs `git-lfs` installed before cloning.
+- [C] Verified: image builds; container with `--network none` becomes healthy in 11 s and classifies correctly (no runtime downloads). Image trimmed by ~600 MB by fetching only the CLIP files the service loads.
+
 ## Step 4 — Production Docker stack
-Target: one Linux VPS (min. 2 vCPU / 4 GB RAM — CLIP + torch need ~1.5–2 GB resident), Docker + Compose plugin.
+Target: one Linux VPS (2 vCPU / 4 GB RAM recommended; [C] measured AI engine: ~350 MB RAM, ready in ~11 s, ~0.6 s per image on CPU), Docker + Compose plugin.
 
 | # | File | Change |
 |---|------|--------|
 | 1 | `docker-compose.yml` — `db` service | `pgvector/pgvector:pg16`, named volume `pgdata`, healthcheck `pg_isready`, not exposed publicly |
 | 2 | `backend/Dockerfile` | [C] `node:24-alpine` (Node 20 reached end-of-life in April 2026); un-ignore and commit `backend/package-lock.json` (currently in `backend/.gitignore`) so `npm ci` works;, `npm ci --omit=dev`, non-root user, runs `migrate` then `server.js`, `HEALTHCHECK` on `/ping`, `uploads` volume mounted at `UPLOAD_DIR` |
-| 3 | `ai_engine/Dockerfile` | Torch from the CPU wheel index (default wheels pull CUDA, ~2.5 GB extra); keep CLIP pre-download; `HEALTHCHECK` on `/health` |
+| 3 | `ai_engine/Dockerfile` | **DONE in Step 3b.** |
 | 4 | `frontend/Dockerfile` (new) | Multi-stage: `npx expo export --platform web` with `EXPO_PUBLIC_API_URL` build arg → `nginx:alpine` with SPA fallback |
 | 5 | `docker-compose.yml` | Rewrite for production: no bind mounts, `restart: unless-stopped`, `env_file`, internal network; only Caddy publishes ports; backend `depends_on` db + ai-engine with `condition: service_healthy` |
 | 6 | `deploy/Caddyfile` (new) + `caddy` service | Automatic HTTPS: `<domain>` → frontend, `api.<domain>` → backend |
@@ -243,5 +257,5 @@ Each item is at least one commit. The app runs locally after Step 3 (`docker com
 - JWT is stateless: logout only deletes the token client-side, and a stolen token stays valid until expiry (7 days). Acceptable for launch; refresh tokens can come later.
 - Uploads on a volume are lost if the VPS disk is lost — `deploy/backup.sh` must copy off-server to be a real backup.
 - [C] Demo catalog product names/codes look like a real retailer's catalog; if the photos are theirs, use the seed only for local/demo environments, not the public site.
-- [C] Found, not fixed (out of scope): `GET /user/:identifier` is public and accepts email or phone, returning the full profile (email, phone) — enables user enumeration and exposes PII. `POST /ai/analyze` has no auth and no file-size limit. `middlewares/security.js` is unused and requires packages that are not installed. `CODING_STANDARDS.md` requires `deleted_at` on all tables; no table has it.
+- [C] Found, not fixed (out of scope): `GET /user/:identifier` is public and accepts email or phone, returning the full profile (email, phone) — enables user enumeration and exposes PII. `middlewares/security.js` is unused and requires packages that are not installed. `CODING_STANDARDS.md` requires `deleted_at` on all tables; no table has it.
 - The live Render/HF/Supabase deployment will drift from the code and should be shut down once the VPS is live.

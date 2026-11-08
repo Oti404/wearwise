@@ -6,29 +6,38 @@ from typing import Any
 
 from PIL import Image
 
-# Non-blocking imports (lazy)
+# torch/torchvision are imported lazily so CLI tools that only parse arguments start instantly.
 torch = None
 nn = None
-build_binary_model_func = None
+
 
 def _get_torch():
-    global torch, nn, build_binary_model_func
+    global torch, nn
     if torch is None:
         import torch as t
         from torch import nn as n
-        from torchvision.models import mobilenet_v3_small, MobileNet_V3_Small_Weights
         torch = t
         nn = n
-        
-        def build_binary_model(num_classes: int = 2):
-            weights = MobileNet_V3_Small_Weights.DEFAULT
-            model = mobilenet_v3_small(weights=weights)
-            in_features = model.classifier[-1].in_features
-            model.classifier[-1] = nn.Linear(in_features, num_classes)
-            return model, weights
-        
-        build_binary_model_func = build_binary_model
-    return torch, nn, build_binary_model_func
+    return torch, nn
+
+
+def build_binary_model(num_classes: int = 2, pretrained: bool = True):
+    """MobileNetV3-Small with a new classification head.
+
+    pretrained=True downloads ImageNet weights (needed for training). Inference passes
+    pretrained=False: the checkpoint overwrites every weight, so downloading them at
+    runtime would only add a network call and latency.
+    """
+    _, n = _get_torch()
+    from torchvision.models import mobilenet_v3_small, MobileNet_V3_Small_Weights
+
+    weights = MobileNet_V3_Small_Weights.DEFAULT
+    model = mobilenet_v3_small(weights=weights if pretrained else None)
+    in_features = model.classifier[-1].in_features
+    model.classifier[-1] = n.Linear(in_features, num_classes)
+    # Preprocessing transforms are metadata only; they never trigger a download.
+    return model, weights
+
 
 DEFAULT_LABELS = ["clothing", "not_clothing"]
 
@@ -54,11 +63,19 @@ class BinaryClothingClassifier:
         self._not_clothing_index = None
         self._device = None
 
+    @property
+    def is_loaded(self) -> bool:
+        return self._model is not None
+
+    def load(self) -> None:
+        """Eagerly load the checkpoint (used at service startup)."""
+        self._load_model()
+
     def _load_model(self):
         if self._model is not None:
             return
 
-        t, n, build_fn = _get_torch()
+        t, _ = _get_torch()
         self._device = t.device("cuda" if t.cuda.is_available() else "cpu")
         
         print(f"[AI] Loading Binary Classifier from {self.checkpoint_path}...")
@@ -68,7 +85,7 @@ class BinaryClothingClassifier:
         if self.threshold is None:
             self.threshold = checkpoint.get("threshold", 0.5)
 
-        model, weights = build_fn(num_classes=len(self._class_names))
+        model, weights = build_binary_model(num_classes=len(self._class_names), pretrained=False)
         model.load_state_dict(checkpoint["model_state_dict"])
         self._model = model.to(self._device).eval()
         self._preprocess = weights.transforms()
@@ -81,7 +98,7 @@ class BinaryClothingClassifier:
         self, image: Image.Image, threshold: float | None = None
     ) -> BinaryPrediction:
         self._load_model()
-        t, _, _ = _get_torch()
+        t, _ = _get_torch()
         
         tensor = self._preprocess(image.convert("RGB")).unsqueeze(0).to(self._device)
         with t.inference_mode():

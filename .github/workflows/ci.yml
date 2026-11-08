@@ -23,12 +23,20 @@ jobs:
   ai-engine-check:
     runs-on: ubuntu-latest
     steps:
+      # lfs: true — without it the checkpoint is a pointer file and the image build fails by design.
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
-      - run: pip install -r requirements.txt
-        working-directory: ai_engine
-      # - run: pytest
-      #   working-directory: ai_engine
+          lfs: true
+      - name: Build image
+        run: docker build -t wearwise-ai ai_engine
+      - name: Start container and wait for models to load
+        run: |
+          docker run -d --name ai -p 7860:7860 wearwise-ai
+          for i in $(seq 1 60); do
+            if curl -fs http://localhost:7860/health | grep -q '"ready":true'; then
+              echo "AI engine ready"; exit 0
+            fi
+            sleep 5
+          done
+          docker logs ai
+          exit 1

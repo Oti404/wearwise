@@ -1,0 +1,27 @@
+# Keep the image to the service code, the checkpoint and its dependencies.
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.idea/
+.vscode/
+.env
+.env.*
+!.env.example
+data/
+test_static/
+tests/
+*.ipynb
+*.log
+*.jpg
+*.jpeg
+*.png
+
+# Training / CLI tools (not used by the service)
+train_binary_clothing.py
+predict_binary_clothing.py
+main.py
+TRAINING_BINARY.md
+requirements-dev.txt
+artifacts/binary_clothing/training_metrics.json

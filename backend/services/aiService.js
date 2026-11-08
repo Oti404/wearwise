@@ -15,17 +15,14 @@ const AppError = require('../middlewares/AppError');
 async function analyzeImage(buffer, filename, mimetype) {
   const AI_ENGINE_URL = process.env.AI_ENGINE_URL;
   if (!AI_ENGINE_URL) {
-    console.error('[aiService] EROARE: AI_ENGINE_URL nu este definit în .env');
-    throw new AppError('Configurația serverului AI lipsește.', 500);
+    console.error('[aiService] AI_ENGINE_URL is not set.');
+    throw new AppError('AI service is not configured.', 500);
   }
 
   const form = new FormData();
   form.append('file', buffer, { filename: filename || 'upload.jpg', contentType: mimetype });
-
-  const headers = { ...form.getHeaders() };
-  if (process.env.HF_TOKEN) {
-    headers['Authorization'] = `Bearer ${process.env.HF_TOKEN}`;
-  }
+  // The engine only listens on the internal Docker network, so no auth header is needed.
+  const headers = form.getHeaders();
 
   try {
     console.log(`[aiService] Forwarding to ${AI_ENGINE_URL}/classify/file`);
@@ -33,12 +30,15 @@ async function analyzeImage(buffer, filename, mimetype) {
       headers,
       timeout: 30000,
     });
-    console.log('[aiService] AI Engine responded:', JSON.stringify(response.data));
     return response.data;
   } catch (err) {
     console.error('[aiService] AI Engine error:', err.message);
-    if (err.response) console.error('[aiService] Detail:', err.response.data);
-    throw new AppError('Serviciul AI nu este disponibil momentan.', 503);
+    // Pass client errors (bad or oversized image) through instead of masking them as an outage.
+    const status = err.response?.status;
+    if (status === 400 || status === 413) {
+      throw new AppError(err.response.data?.detail || 'Invalid image.', status);
+    }
+    throw new AppError('The AI service is unavailable right now.', 503);
   }
 }
 

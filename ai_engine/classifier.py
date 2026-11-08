@@ -279,10 +279,13 @@ class ClothingClassifier:
         )
         print("[AI] CLIP model loaded successfully.")
 
-    def predict_types(self, image: Image.Image, top_k: int = 5) -> List[LabelScore]:
+    def encode_image(self, image: Image.Image) -> Any:
+        """Normalized CLIP embedding; compute once and reuse for type and safety predictions."""
         self._ensure_loaded()
-        image_features = self._encode_image(image.convert("RGB"))
-        return self.predict_types_from_features(image_features)[:top_k]
+        return self._encode_image(image.convert("RGB"))
+
+    def predict_types(self, image: Image.Image, top_k: int = 5) -> List[LabelScore]:
+        return self.predict_types_from_features(self.encode_image(image))[:top_k]
 
     def predict_types_from_features(self, image_features: Any) -> List[LabelScore]:
         self._ensure_loaded()
@@ -293,8 +296,10 @@ class ClothingClassifier:
         )
 
     def predict_safety(self, image: Image.Image) -> Dict[str, float]:
+        return self.predict_safety_from_features(self.encode_image(image))
+
+    def predict_safety_from_features(self, image_features: Any) -> Dict[str, float]:
         self._ensure_loaded()
-        image_features = self._encode_image(image.convert("RGB"))
         preds = self._predict_from_entries(
             image_features=image_features,
             entries=self._safety_entries,

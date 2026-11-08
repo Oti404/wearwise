@@ -1,14 +1,10 @@
-python-dotenv
-fastapi
-uvicorn[standard]
-pillow
-torch
-torchvision
-transformers
-accelerate
-ftfy
-regex
-tqdm
-python-multipart
-git+https://github.com/openai/CLIP.git
-
+# Runtime dependencies of the AI service (pinned for reproducible images).
+# The Dockerfile installs torch/torchvision from the CPU-only index first; locally pip picks the default build.
+torch==2.10.0
+torchvision==0.25.0
+transformers==5.3.0
+fastapi==0.135.1
+uvicorn[standard]==0.42.0
+python-multipart==0.0.22
+pillow==12.1.1
+python-dotenv==1.2.2

@@ -1,0 +1,4 @@
+# Extra tools for training the binary classifier and running tests locally.
+-r requirements.txt
+tqdm==4.67.3
+httpx

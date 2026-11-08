@@ -47,18 +47,35 @@ class HybridClothingClassifier:
         )
         self.type_classifier = ClothingClassifier()
 
+    @property
+    def is_ready(self) -> bool:
+        return self.binary_classifier.is_loaded and self.type_classifier.is_loaded
+
+    def load(self) -> None:
+        """Load both models up front so no request pays the cold-start cost."""
+        self.binary_classifier.load()
+        self.type_classifier.load()
+
     def predict(self, image: Image.Image, top_k: int = 5) -> HybridClassificationResult:
         binary_result = self.binary_classifier.predict(image)
         return self._build_result(image, binary_result, top_k=top_k)
 
     def predict_with_threshold(
-        self, image: Image.Image, top_k: int = 5, binary_threshold: float | None = None
+        self,
+        image: Image.Image,
+        top_k: int = 5,
+        binary_threshold: float | None = None,
+        image_features: Any = None,
     ) -> HybridClassificationResult:
         binary_result = self.binary_classifier.predict(image, threshold=binary_threshold)
-        return self._build_result(image, binary_result, top_k=top_k)
+        return self._build_result(image, binary_result, top_k=top_k, image_features=image_features)
 
     def _build_result(
-        self, image: Image.Image, binary_result: BinaryPrediction, top_k: int
+        self,
+        image: Image.Image,
+        binary_result: BinaryPrediction,
+        top_k: int,
+        image_features: Any = None,
     ) -> HybridClassificationResult:
         if not binary_result.is_clothing:
             return HybridClassificationResult(
@@ -71,7 +88,9 @@ class HybridClothingClassifier:
                 binary_prediction=binary_result.to_dict(),
             )
 
-        type_predictions = self.type_classifier.predict_types(image, top_k=top_k)
+        if image_features is None:
+            image_features = self.type_classifier.encode_image(image)
+        type_predictions = self.type_classifier.predict_types_from_features(image_features)[:top_k]
         best_label = type_predictions[0] if type_predictions else None
 
         return HybridClassificationResult(

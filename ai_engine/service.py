@@ -2,26 +2,24 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from io import BytesIO
-from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 from PIL import Image, UnidentifiedImageError
 
+from classifier import CATEGORY_MAPPING
 from hybrid_classifier import DEFAULT_BINARY_CHECKPOINT, HybridClothingClassifier
 
 
 DEFAULT_TOP_K = 5
+# Matches the backend upload limit; larger files are rejected before decoding.
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 
 class ClassificationOptions(BaseModel):
     binary_threshold: float | None = Field(default=None, ge=0.0, le=1.0)
     top_k: int = Field(default=DEFAULT_TOP_K, ge=1, le=20)
-
-
-class PathClassificationRequest(ClassificationOptions):
-    image_path: str
 
 
 def _classify_image(
@@ -31,20 +29,18 @@ def _classify_image(
     options: ClassificationOptions,
 ) -> dict[str, Any]:
     print(f"[AI Service] Classifying image ref: {image_ref}")
+    # One CLIP encoding serves both the type prediction and the safety check (CPU-bound in production).
+    image_features = classifier.type_classifier.encode_image(image)
     result = classifier.predict_with_threshold(
         image=image,
         top_k=options.top_k,
         binary_threshold=options.binary_threshold,
+        image_features=image_features,
     )
-    
-    # Safety Check
-    print("[AI Service] Running safety check...")
-    safety = classifier.type_classifier.predict_safety(image)
+
+    safety = classifier.type_classifier.predict_safety_from_features(image_features)
     is_safe = safety.get("safe", 0) > safety.get("unsafe", 0)
-    
-    # Mapping to suggestions
-    from classifier import CATEGORY_MAPPING
-    
+
     payload = result.to_dict()
     best_label = payload.get("label")
     
@@ -92,7 +88,7 @@ def _load_image_from_bytes(image_bytes: bytes) -> Image.Image:
 
 def _is_ready() -> bool:
     classifier = getattr(app.state, "classifier", None)
-    return classifier is not None and classifier.type_classifier.is_loaded
+    return classifier is not None and classifier.is_ready
 
 
 def _require_classifier() -> HybridClothingClassifier:
@@ -111,13 +107,13 @@ async def lifespan(app: FastAPI):
         classifier = HybridClothingClassifier(
             binary_checkpoint_path=checkpoint_path
         )
-        classifier.type_classifier.load()
+        classifier.load()
         app.state.classifier = classifier
         app.state.binary_checkpoint_path = checkpoint_path
-        print("[AI Engine] Hybrid classifier and CLIP model loaded.")
+        print("[AI Engine] Binary classifier and CLIP model loaded.")
     except Exception as e:
         print(f"[AI Engine] ERROR during lifespan initialization: {e}")
-        # We don't want to crash the whole server, but we mark it as failed
+        # Stay up but report not-ready, so /health shows the failure instead of a crash loop
         app.state.classifier = None
         app.state.binary_checkpoint_path = checkpoint_path
         
@@ -147,21 +143,6 @@ async def health() -> dict[str, Any]:
     }
 
 
-@app.post("/classify/path")
-async def classify_path(request: PathClassificationRequest) -> dict[str, Any]:
-    image_path = Path(request.image_path)
-    if not image_path.exists():
-        raise HTTPException(status_code=404, detail=f"Image not found: {image_path}")
-
-    try:
-        with Image.open(image_path) as opened_image:
-            image = opened_image.convert("RGB")
-    except UnidentifiedImageError as exc:
-        raise HTTPException(status_code=400, detail="Invalid or unsupported image.") from exc
-
-    return _classify_image(_require_classifier(), image, str(image_path), request)
-
-
 @app.post("/classify/file")
 async def classify_file(
     file: UploadFile = File(...),
@@ -171,8 +152,10 @@ async def classify_file(
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Uploaded file must be an image.")
 
-    print(f"[AI Service] POST /classify/file hit - Filename: {file.filename}")
-    image_bytes = await file.read()
+    # Read one byte past the limit so oversized uploads are detected without buffering them fully.
+    image_bytes = await file.read(MAX_IMAGE_BYTES + 1)
+    if len(image_bytes) > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail="Image must be at most 5 MB.")
     image = _load_image_from_bytes(image_bytes)
     print(f"[AI Service] Image loaded from bytes ({len(image_bytes)} bytes)")
     options = ClassificationOptions(

@@ -19,8 +19,7 @@ import { useRouter } from 'expo-router';
 import { AuthButton } from '@/components/AuthUI';
 import { useClothes } from '@/hooks/useClothes';
 import { useAppStore } from '@/store/useAppStore';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+import { API_URL, getAuthToken } from '@/config/apiClient';
 
 type ImageValidationStatus = 'idle' | 'validating' | 'valid' | 'invalid';
 
@@ -79,16 +78,13 @@ const AddItemScreen = () => {
 
     try {
       const formData = new FormData();
-      if (Platform.OS === 'web') {
-        const res = await fetch(uri);
-        const blob = await res.blob();
-        formData.append('image', blob, `image_${index}.jpg`);
-      } else {
-        formData.append('image', { uri, type: 'image/jpeg', name: `image_${index}.jpg` } as any);
-      }
+      const blob = await (await fetch(uri)).blob();
+      formData.append('image', blob, `image_${index}.jpg`);
 
+      const token = await getAuthToken();
       const aiRes = await fetch(`${API_URL}/ai/analyze`, {
         method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
       });
 
