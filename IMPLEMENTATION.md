@@ -193,7 +193,8 @@ Target: one Linux VPS (min. 2 vCPU / 4 GB RAM — CLIP + torch need ~1.5–2 GB 
 ## Step 3 — Docs & CI
 - Rewrite `README.md` / `DEVELOPER_GUIDE.md` around `docker compose up --build`.
 - `ci.yml`: Node 20, Python 3.10 (match Dockerfiles), add `docker compose build` job.
-- Decide fate of Render/HF workflows (keep as fallback or remove).
+- Render/HF deploy path REMOVED (2026-11-08): `render.yaml`, `deploy-render.yml`, `deploy-ai-hf.yml`, `keep-alive.yml` deleted. Rows 3–5 of the Zero-Touch Redeploy section above are obsolete; rows 1–2 (CLIP baked into image, eager load + `/health` readiness) still apply to the VPS stack.
+- Dead Firebase code deleted: `frontend/components/ImageUploader.tsx`, `backend/middlewares/syncUserMiddleware.js`. `backend/database/seeds/sql_seed*.js` kept but still broken (require non-existent `config/firebase`) — needs a Supabase Storage rewrite.
 
 ## [C] Open questions / edge cases
 - `EXPO_PUBLIC_*` vars are baked at build time — changing the API URL requires rebuilding the frontend image.
