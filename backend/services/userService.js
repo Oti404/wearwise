@@ -12,43 +12,6 @@ const AppError = require('../middlewares/AppError');
 const { supabase } = require('../config/supabase');
 
 /**
- * Register a new user profile in PostgreSQL.
- */
-async function registerUser(uid, data) {
-    // Check if user already exists
-    const existing = await db.query.users.findFirst({
-        where: eq(users.authUid, uid),
-    });
-
-    if (existing) {
-        // During registration, a race condition often occurs where GET /user/:id auto-syncs the user first.
-        // If it exists, we MUST update the row with the newly filled registration form data.
-        const [updatedUser] = await db.update(users)
-            .set({
-                firstName: data.firstName || existing.firstName,
-                lastName: data.lastName || existing.lastName,
-                phone: data.phone || existing.phone,
-                city: data.city || existing.city,
-                updatedAt: new Date(),
-            })
-            .where(eq(users.authUid, uid))
-            .returning();
-        return updatedUser;
-    }
-
-    const [newUser] = await db.insert(users).values({
-        authUid: uid,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        phone: data.phone || null,
-        city: data.city || null,
-    }).returning();
-
-    return newUser;
-}
-
-/**
  * Get user by Firebase UID, email, or phone.
  */
 async function getUserByIdentifier(identifier) {
@@ -114,4 +77,4 @@ async function updateUser(uid, updates) {
     return updated;
 }
 
-module.exports = { registerUser, getUserByIdentifier, updateUser };
+module.exports = { getUserByIdentifier, updateUser };

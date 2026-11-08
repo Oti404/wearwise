@@ -1,38 +1,27 @@
-const { supabase } = require('../config/supabase');
+'use strict';
+
 const AppError = require('./AppError');
+const { verifyAuthToken } = require('../services/authService');
 
 /**
- * verifyToken – Supabase Auth middleware.
+ * verifyToken – JWT auth middleware.
  *
- * Expects:  Authorization: Bearer <supabase_access_token>
- * Sets:     req.user = Supabase user object
+ * Expects:  Authorization: Bearer <token issued by /auth/login or /auth/register>
+ * Sets:     req.user = { uid, id, email } — `uid` is the users.auth_uid that services look up.
  */
-const verifyToken = async (req, res, next) => {
+const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return next(new AppError('Autentificare necesară. Token lipsă.', 401));
+    return next(new AppError('Authentication required.', 401));
   }
 
-  const token = authHeader.split('Bearer ')[1];
-
   try {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    
-    if (error || !user) {
-      throw new AppError('Token invalid sau expirat.', 401);
-    }
-
-    // Map properties for legacy compatibility if needed
-    // Typically, Firebase 'uid' is mapped to Supabase 'id' (UUID)
-    req.user = {
-      ...user,
-      uid: user.id, // For compatibility with clothesSqlService which uses .authUid
-    };
-    
-    next();
+    const payload = verifyAuthToken(authHeader.slice('Bearer '.length));
+    req.user = { uid: payload.sub, id: payload.sub, email: payload.email };
+    return next();
   } catch (err) {
-    return next(err instanceof AppError ? err : new AppError('Token verification failed.', 401));
+    return next(err);
   }
 };
 

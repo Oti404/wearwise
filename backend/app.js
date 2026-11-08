@@ -14,6 +14,7 @@ const errorHandler = require('./middlewares/errorHandler');
 const AppError = require('./middlewares/AppError');
 
 // Route modules
+const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const clothesRoutes = require('./routes/clothesRoutes');
 const checkoutRoutes = require('./routes/checkoutRoutes');
@@ -41,6 +42,7 @@ app.use(requestLogger);
 app.get('/ping', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // ── Routes ────────────────────────────────────────────────────────────────────
+app.use('/auth', authRoutes);
 app.use('/', userRoutes);
 app.use('/', clothesRoutes);
 app.use('/', checkoutRoutes);

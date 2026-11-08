@@ -4,11 +4,9 @@ const router = require('express').Router();
 const userController = require('../controllers/userController');
 const verifyToken = require('../middlewares/verifyToken');
 const validate = require('../middlewares/validate');
-const { registerSchema, updateProfileSchema } = require('../validators/userSchemas');
-const { writeLimiter } = require('../config/rateLimit');
+const { updateProfileSchema } = require('../validators/userSchemas');
 
-// POST /register – public
-router.post('/register', writeLimiter, validate(registerSchema), userController.register);
+// Account creation lives in authRoutes (POST /auth/register).
 
 // GET /user/:identifier – public
 router.get('/user/:identifier', userController.getUser);
