@@ -257,6 +257,24 @@ Target: one Linux VPS (2 vCPU / 4 GB RAM recommended; [C] measured AI engine: ~3
 - [C] Commit author emails rewritten to the GitHub noreply address (user decision); repo-local `user.email` set to it.
 - [C] License: none, all rights reserved (user decision); stated in README.
 
+## Step 6 — Hosting on Google Cloud e2-micro (Always Free) (2026-11-08)
+User decision: Oracle signup failed (existing account); chose Google Cloud's always-free **e2-micro** (1 GB RAM, 30 GB disk, US region) with `wearwise.otnielcodes.com` (DNS at Spaceship).
+
+[C] Measured footprint (local, under 3 parallel AI analyses): ai-engine 395 MB, backend 43 MB, Postgres 25 MB, nginx 13 MB → ~505 MB incl. Caddy. Fits 1 GB with a 2 GB swap file. Building the AI image on the VM would not fit, so images are **built by GitHub Actions and published to GHCR**; the VM only pulls.
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `.github/workflows/publish-images.yml` (new) | On push to `main` (and manual): build `backend`, `frontend`, `ai-engine` (LFS checkout) for linux/amd64, push to `ghcr.io/oti404/wearwise-<service>:latest` and `:<sha>` |
+| 2 | `docker-compose.prod.yml` (new overlay) | Use GHCR images (`--no-build`), add `caddy` on 80/443 with automatic HTTPS, remove nginx's host port, low-memory Postgres settings, smaller DB pool |
+| 3 | `deploy/Caddyfile` (new) | `{$DOMAIN}` → `frontend:80`, gzip/zstd, HSTS |
+| 4 | `deploy/setup.sh` (new) | One command on a fresh Ubuntu VM: swap, Docker, clone, generate `.env` with random secrets, pull + start, daily backup cron. Idempotent |
+| 5 | `deploy/update.sh`, `deploy/backup.sh` (new) | Pull new images and restart; nightly `pg_dump` + uploads archive, 7-day retention |
+| 6 | `deploy/README.md` (new) + `DEVELOPER_GUIDE.md` | Step-by-step: Google Cloud VM creation, firewall, Spaceship DNS record, first deploy, updates, backups |
+
+[C] DONE and verified locally: production overlay with Caddy (`DOMAIN=localhost`) → all services healthy, Postgres low-memory settings applied, nginx no longer published, HTTP→HTTPS redirect, HSTS; end-to-end 32/32 through HTTPS; backup produced a full dump (8 tables) and an uploads archive (30/30 files); shellcheck clean. The publish workflow and the GCP VM itself can only be verified on GitHub and Google Cloud.
+
+[C] Constraints to document: free egress is 1 GB/month (≈ 1,000 first visits), US regions only (~120 ms from Romania), and GHCR packages must be public (or the VM logs in) for anonymous pulls.
+
 ## Execution order & commits
 Each item is at least one commit. The app runs locally after Step 3 (`docker compose up db` + local backend/frontend).
 1. Step 2 rows 1–3 (schema, migrations, migrator) → 2. rows 4–5 (auth) → 3. rows 6–7 (uploads) → 4. rows 8–12 (Supabase removal, seed) → 5. Step 3 → 6. Step 4 → 7. Step 5.

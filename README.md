@@ -57,6 +57,7 @@ The browser only talks to nginx. The API, database and AI engine are reachable o
 ## Documentation
 
 - [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md): local development, tests, deployment, troubleshooting
+- [deploy/README.md](./deploy/README.md): step-by-step production deployment (Google Cloud free tier + HTTPS)
 - [ARCHITECTURE.md](./ARCHITECTURE.md): system design, module contracts, data flow
 - [CODING_STANDARDS.md](./CODING_STANDARDS.md): coding rules
 - [CLAUDE.md](./CLAUDE.md): workflow rules for AI assistants

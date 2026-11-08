@@ -1,0 +1,61 @@
+name: Publish images
+
+# Builds the production images and publishes them to GitHub Container Registry.
+# The server never builds (an e2-micro has too little memory for the AI image); it only pulls these.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-images
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [backend, frontend, ai-engine]
+        include:
+          - service: backend
+            context: backend
+          - service: frontend
+            context: frontend
+          - service: ai-engine
+            context: ai_engine
+    steps:
+      # lfs: true — the AI image needs the real model checkpoint, not its LFS pointer.
+      - uses: actions/checkout@v5
+        with:
+          lfs: true
+
+      - name: Image name (GHCR requires lowercase)
+        id: name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/wearwise-${{ matrix.service }}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.name.outputs.image }}:latest
+            ${{ steps.name.outputs.image }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}

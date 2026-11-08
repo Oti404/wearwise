@@ -1,0 +1,15 @@
+# Caddy obtains and renews the HTTPS certificate for $DOMAIN automatically (Let's Encrypt).
+# Requirements: the domain's A record points to this server, and ports 80 and 443 are open.
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# nginx (frontend container) serves the app and proxies /api to the backend.
+	reverse_proxy frontend:80
+}

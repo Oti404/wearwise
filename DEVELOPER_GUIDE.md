@@ -82,23 +82,21 @@ CI (`.github/workflows/ci.yml`) runs on every push and pull request to `main` an
 - `docker compose config` validation
 - an AI image build that waits for `/health` to report `ready: true`
 
-## Deployment (single server)
-Target: a Linux VPS with Docker, 2 vCPU / 4 GB RAM recommended. Measured footprint: the AI engine uses about 350 MB RAM, is ready about 11 s after start, and takes about 0.6 s per image.
+## Deployment
+Production runs on a single small server with `docker-compose.yml` + `docker-compose.prod.yml`:
+- the images are built by GitHub Actions (`publish-images.yml`, on every push to `main`) and published to GHCR, so the server only pulls them
+- Caddy terminates HTTPS for the domain and forwards to nginx
+- Postgres is tuned for about 1 GB of RAM
 
-```bash
-sudo apt install git-lfs && git lfs install
-git clone https://github.com/Oti404/wearwise.store.git /opt/wearwise && cd /opt/wearwise
-cp .env.example .env    # strong secrets; PUBLIC_URL=https://<your-domain>; TRUST_PROXY=2
-docker compose up -d --build
-```
+**Step-by-step guide (Google Cloud e2-micro, `wearwise.otnielcodes.com`): [deploy/README.md](./deploy/README.md).**
 
-nginx stays bound to `127.0.0.1`; a TLS reverse proxy (Caddy) in front of it serves the domain over HTTPS. *The Caddy configuration and backups are added once the domain and provider are chosen; see Step 4 in [IMPLEMENTATION.md](./IMPLEMENTATION.md).*
+| Script | Purpose |
+|---|---|
+| `deploy/setup.sh <domain>` | One-time server setup: swap, Docker, clone, `.env` with random secrets, start, nightly backup |
+| `deploy/update.sh` | Pull the latest images and restart (migrations run automatically) |
+| `deploy/backup.sh` | `pg_dump` + uploads archive into `/var/backups/wearwise`, 7 days kept |
 
-Updating a running server:
-```bash
-git pull && docker compose up -d --build
-```
-Data lives in the `pgdata` and `uploads` volumes and survives rebuilds; only `docker compose down -v` deletes it.
+To try the production setup locally, tag local images with their GHCR names and set `DOMAIN=localhost`, `CADDY_HTTP_PORT=8081` and `CADDY_HTTPS_PORT=8443`. Caddy then issues a locally trusted certificate.
 
 ## Git workflow
 - Branches: `main` (released), `develop` (integration), plus `feat/`, `fix/`, `chore/`, `hotfix/` branches; squash-merge into `develop`.
