@@ -28,7 +28,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
+    "@types/node": "^26.6.6",
     "drizzle-kit": "^0.31.10",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
