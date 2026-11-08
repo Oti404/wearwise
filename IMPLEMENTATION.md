@@ -175,29 +175,71 @@ A full redeploy (frontend, backend, AI engine) must come up healthy with no manu
 | D | `PROMPT.md`; fix `ARCHITECTURE.md` directory map | Non-English doc; map lists non-existent dirs |
 | — | `.gitignore`: `.expo/`, `.idea/`, `.pytest_cache/`, `__pycache__/`, `dist/` | DONE |
 
-Follow-up docs that reference deleted tooling and must be rewritten in Step 3: `README.md`, `DEVELOPER_GUIDE.md`, `docs/GIT_WORKFLOW.md`, `docs/TESTING.md`, module READMEs. `backend/.env.example` still documents Firebase — replace with Supabase vars.
+Follow-up docs that reference deleted tooling are rewritten in Step 5.
 
-## Step 2 — Production Docker stack
+Also removed in Step 1 (2026-11-08): the Render/HF deploy path (`render.yaml`, `deploy-render.yml`, `deploy-ai-hf.yml`, `keep-alive.yml`). Rows 3–5 of the Zero-Touch Redeploy section above are obsolete; rows 1–2 still apply. Dead Firebase code: `frontend/components/ImageUploader.tsx`, `backend/middlewares/syncUserMiddleware.js`.
+
+## Decisions (2026-11-08)
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Drop Supabase and Firebase entirely; self-host Postgres in the Docker stack | Single self-contained deployment, no external services |
+| 2 | Frontend becomes **web-only**; existing Expo code is kept and Expo is used only as the web build tool. No EAS, no native builds | Avoids a 12.5k-line rewrite |
+| 3 | Start with an **empty database** + demo seed; no data migration from Supabase | No production data worth keeping |
+| 4 | Uploaded images stored on a **Docker volume**, served by the backend at `/uploads` | Simplest option; backed up together with the DB |
+
+## Step 2 — Backend: own database, auth and storage
+| # | File | Change |
+|---|------|--------|
+| 1 | `backend/drizzle/schema.ts` / `schema.js` | Add `users.password_hash text not null`. Keep `auth_uid` and set it equal to `users.id` on register — avoids touching ~59 `authUid` references in 10 files; a rename can be a later refactor |
+| 2 | `backend/drizzle/migrations/` | Replace the Supabase-era migration set with one fresh baseline (`drizzle-kit generate`) + one hand-written SQL migration: `CREATE EXTENSION vector`, `updated_at` triggers, HNSW index, match function. **Drop all RLS policies** (they call `auth.uid()`, which only exists in Supabase; ownership is already enforced in the backend) |
+| 3 | `backend/db/migrate.js` (new) | Run migrations with `drizzle-orm/postgres-js/migrator` on container start, before `server.js` |
+| 4 | `backend/routes/authRoutes.js`, `controllers/authController.js`, `services/authService.js`, `validators/authSchemas.js` (new) | `POST /auth/register`, `POST /auth/login`, `GET /auth/me`. Passwords hashed with `bcryptjs` (cost 12); JWT (`jsonwebtoken`, HS256, `JWT_SECRET`, 7-day expiry). Rate-limited with the existing limiter |
+| 5 | `backend/middlewares/verifyToken.js` | Verify our JWT instead of `supabase.auth.getUser()`; keep the `req.user = { uid, id, email }` shape so downstream code is unchanged |
+| 6 | `backend/services/storageService.js` | Write files to `UPLOAD_DIR` (volume) with random names, validate MIME (jpeg/png/webp) and size (5 MB); return `${PUBLIC_API_URL}/uploads/<file>` |
+| 7 | `backend/routes/uploadRoutes.js` (new) + `app.js` | `POST /uploads` (auth, `multer` memory storage) → storageService; `express.static(UPLOAD_DIR)` at `/uploads` with long cache headers |
+| 8 | `services/clothesSqlService.js`, `services/userService.js` | Remove `supabase.auth.admin.getUserById` fallbacks — users always exist in SQL after register |
+| 9 | Delete `config/supabase.js`, `services/supabaseService.ts`, `types/supabase.ts`, `supabase/`, `scripts/test_add_product.js`, `database/seeds/sql_seed.js`, `sql_seed_manual.js` | Supabase/Firebase-only code |
+| 10 | `database/seeds/seed.js` (new) | Demo users + listings against the new schema (replaces the broken seeds) |
+| 11 | `package.json` | Remove `@supabase/supabase-js`, `googleapis`, `@opentelemetry/api`; add `bcryptjs`, `jsonwebtoken`; scripts `migrate`, `seed`, `db:generate` |
+| 12 | `.env.example` | Replace Firebase/Supabase vars with `DATABASE_URL`, `JWT_SECRET`, `UPLOAD_DIR`, `PUBLIC_API_URL`, `AI_ENGINE_URL`, `ALLOWED_ORIGINS` |
+
+## Step 3 — Frontend: web-only, backend auth and uploads
+| # | File | Change |
+|---|------|--------|
+| 1 | `frontend/config/apiClient.ts` (new) replaces `config/supabaseClient.ts` | `fetch` wrapper adding `Authorization: Bearer <token>`; token stored in `AsyncStorage` (localStorage on web) |
+| 2 | `hooks/useAuth.ts`, `app/_layout.tsx` | Register/login/logout call `/auth/*`; session restored from the stored token via `GET /auth/me` instead of `supabase.auth.getSession/onAuthStateChange`. Register becomes one request (the current two-step Supabase signUp + `/register` goes away) |
+| 3 | `hooks/useClothes.ts`, `hooks/useUser.ts`, `hooks/useFollow.ts` | Image uploads → `POST /uploads` (multipart); token from apiClient |
+| 4 | Delete `components/LocationPicker.tsx` (native, `react-native-maps`), `components/haptic-tab.tsx` (unused), `eas.json` | Native-only; `LocationPicker.web.tsx` becomes the only implementation |
+| 5 | `package.json` | Remove `@supabase/supabase-js`, `react-native-maps`, `expo-haptics`, `react-native-image-picker`, `react-native-image-resizer`, `expo-symbols`. Keep `expo-image-picker`, deck-swiper and slider (they work on web) |
+| 6 | `app.json` | Remove `ios`/`android` blocks (Vercel deep links), set `web.output`, update origin to the new domain |
+
+## Step 4 — Production Docker stack
 Target: one Linux VPS (min. 2 vCPU / 4 GB RAM — CLIP + torch need ~1.5–2 GB resident), Docker + Compose plugin.
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `backend/Dockerfile` | `node:20-alpine`, `npm ci --omit=dev`, non-root `node` user, `HEALTHCHECK` on `/ping`, port 3000 |
-| 2 | `ai_engine/Dockerfile` | Install torch from the CPU wheel index (`--index-url https://download.pytorch.org/whl/cpu`) — default wheels pull CUDA (~2.5 GB extra); keep CLIP pre-download; `HEALTHCHECK` on `/health` |
-| 3 | `frontend/Dockerfile` (new) | Multi-stage: `node:20` runs `npx expo export --platform web` with `EXPO_PUBLIC_*` as build args → copy `dist/` into `nginx:alpine` with SPA fallback |
-| 4 | `docker-compose.yml` | Rewrite for production: no bind mounts, `restart: unless-stopped`, `env_file`, internal network, AI engine NOT exposed publicly (backend reaches it at `http://ai-engine:7860`), backend `depends_on` AI with `condition: service_healthy` |
-| 5 | `deploy/Caddyfile` (new) + `caddy` service | Reverse proxy with automatic HTTPS: `app.<domain>` → frontend, `api.<domain>` → backend |
-| 6 | `.dockerignore` per module (new) | Exclude `node_modules`, `.venv`, `.env`, `.expo`, logs |
-| 7 | `.env.production.example` (root, new) | Single documented env template for the stack |
+| 1 | `docker-compose.yml` — `db` service | `pgvector/pgvector:pg16`, named volume `pgdata`, healthcheck `pg_isready`, not exposed publicly |
+| 2 | `backend/Dockerfile` | `node:20-alpine`, `npm ci --omit=dev`, non-root user, runs `migrate` then `server.js`, `HEALTHCHECK` on `/ping`, `uploads` volume mounted at `UPLOAD_DIR` |
+| 3 | `ai_engine/Dockerfile` | Torch from the CPU wheel index (default wheels pull CUDA, ~2.5 GB extra); keep CLIP pre-download; `HEALTHCHECK` on `/health` |
+| 4 | `frontend/Dockerfile` (new) | Multi-stage: `npx expo export --platform web` with `EXPO_PUBLIC_API_URL` build arg → `nginx:alpine` with SPA fallback |
+| 5 | `docker-compose.yml` | Rewrite for production: no bind mounts, `restart: unless-stopped`, `env_file`, internal network; only Caddy publishes ports; backend `depends_on` db + ai-engine with `condition: service_healthy` |
+| 6 | `deploy/Caddyfile` (new) + `caddy` service | Automatic HTTPS: `<domain>` → frontend, `api.<domain>` → backend |
+| 7 | `.dockerignore` per module (new) | Exclude `node_modules`, `.venv`, `.env`, `.expo`, `dist`, logs |
+| 8 | `.env.production.example` (root, new) | Single documented env template (`POSTGRES_PASSWORD`, `JWT_SECRET`, domain, …) |
+| 9 | `deploy/backup.sh` (new) | Nightly `pg_dump` + tar of the `uploads` volume |
 
-## Step 3 — Docs & CI
-- Rewrite `README.md` / `DEVELOPER_GUIDE.md` around `docker compose up --build`.
-- `ci.yml`: Node 20, Python 3.10 (match Dockerfiles), add `docker compose build` job.
-- Render/HF deploy path REMOVED (2026-11-08): `render.yaml`, `deploy-render.yml`, `deploy-ai-hf.yml`, `keep-alive.yml` deleted. Rows 3–5 of the Zero-Touch Redeploy section above are obsolete; rows 1–2 (CLIP baked into image, eager load + `/health` readiness) still apply to the VPS stack.
-- Dead Firebase code deleted: `frontend/components/ImageUploader.tsx`, `backend/middlewares/syncUserMiddleware.js`. `backend/database/seeds/sql_seed*.js` kept but still broken (require non-existent `config/firebase`) — needs a Supabase Storage rewrite.
+## Step 5 — Docs & CI
+- Rewrite `README.md`, `DEVELOPER_GUIDE.md` and module READMEs around `docker compose up --build`; delete `docs/GIT_WORKFLOW.md` and `docs/TESTING.md` (they describe removed tooling); translate `backend/docs/DATA_FLOW.md`; update the `ARCHITECTURE.md` topology (no Supabase/EAS).
+- `ci.yml`: Node 20, Python 3.10, add a `docker compose build` job and an auth smoke test against a Postgres service container.
+
+## Execution order & commits
+Each item is at least one commit. The app runs locally after Step 3 (`docker compose up db` + local backend/frontend).
+1. Step 2 rows 1–3 (schema, migrations, migrator) → 2. rows 4–5 (auth) → 3. rows 6–7 (uploads) → 4. rows 8–12 (Supabase removal, seed) → 5. Step 3 → 6. Step 4 → 7. Step 5.
 
 ## [C] Open questions / edge cases
-- `EXPO_PUBLIC_*` vars are baked at build time — changing the API URL requires rebuilding the frontend image.
-- `frontend/app.json` deep links still point to `wearwise-web.vercel.app`; must be updated to the new domain.
-- A domain name with DNS A records pointing to the VPS is required for HTTPS.
-- Supabase stays managed — no Postgres container.
+- **Domain + VPS provider still undecided** — needed for the Caddyfile, `PUBLIC_API_URL`, CORS and `app.json`. Not blocking until Step 4.
+- `EXPO_PUBLIC_*` vars are baked in at build time — changing the API URL requires rebuilding the frontend image.
+- No password reset / email verification in this scope (Supabase used to provide it). Adding it needs an SMTP provider — proposed as a follow-up.
+- JWT is stateless: logout only deletes the token client-side, and a stolen token stays valid until expiry (7 days). Acceptable for launch; refresh tokens can come later.
+- Uploads on a volume are lost if the VPS disk is lost — `deploy/backup.sh` must copy off-server to be a real backup.
+- The live Render/HF/Supabase deployment will drift from the code and should be shut down once the VPS is live.
