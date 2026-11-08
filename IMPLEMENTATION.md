@@ -244,9 +244,12 @@ Target: one Linux VPS (2 vCPU / 4 GB RAM recommended; [C] measured AI engine: ~3
 
 - [C] Verified locally (2026-11-08): `docker compose up -d --build` → all 4 services healthy; seed loads 21 listings; 23/23 end-to-end checks through nginx on :8080 (register, login, session restore, demo login, real AI analysis, upload + serve, create listing, feed images, closet, follow, profile ownership, checkout). `/ai/analyze` now detects the image type from file bytes instead of trusting the client header.
 
-## Step 5 — Docs & CI
-- Rewrite `README.md`, `DEVELOPER_GUIDE.md` and module READMEs around `docker compose up --build`; delete `docs/GIT_WORKFLOW.md` and `docs/TESTING.md` (they describe removed tooling); translate `backend/docs/DATA_FLOW.md`; update the `ARCHITECTURE.md` topology (no Supabase/EAS).
-- `ci.yml`: Node 20, Python 3.10, add a `docker compose build` job and an auth smoke test against a Postgres service container.
+## Step 5 — Docs & CI — DONE (2026-11-08)
+- Rewritten in English around Docker: `README.md`, `DEVELOPER_GUIDE.md` (config, dev workflow, database, tests, deployment, git workflow, troubleshooting), `ARCHITECTURE.md` (topology, module contracts, access rules, infrastructure), `backend/README.md` (API reference), `backend/docs/DATA_FLOW.md`, `frontend/README.md`, `docs/tasks/README.md`. Deleted `docs/GIT_WORKFLOW.md` and `docs/TESTING.md` (described removed `.bat` tooling; content moved to the developer guide).
+- [C] New `docker-compose.dev.yml` overlay publishes db (`127.0.0.1:55432`, since 5432 is reserved on Windows here) and AI engine (`:7860`) for hot-reload development; `frontend/.env.example` added.
+- `ci.yml`: backend integration tests on Node 24 against a pgvector service container (35 tests); frontend web export; `docker compose config` validation for both compose files; AI image build + readiness (from Step 3b). Concurrency group cancels superseded runs. Backend job verified locally with a clean `npm ci` (35/35).
+- [C] Not in CI: TypeScript type-check, because unused `frontend/components/ui/` template files don't compile (150 errors, all in that folder). Deleting the folder would allow adding `tsc --noEmit`.
+- [C] Not changed: `CODING_STANDARDS.md` still mentions Expo Go / mobile bundles and `deleted_at` columns; it ranks above this plan, so changes need the user's decision.
 
 ## Execution order & commits
 Each item is at least one commit. The app runs locally after Step 3 (`docker compose up db` + local backend/frontend).

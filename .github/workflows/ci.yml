@@ -6,19 +6,75 @@ on:
   pull_request:
     branches: [main, develop]
 
+# A newer push to the same branch makes older runs pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend-test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: wearwise
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d wearwise"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgres://postgres:test@localhost:5432/wearwise
+      # Test-only signing key; never used outside CI.
+      JWT_SECRET: ci-test-secret-that-is-at-least-32-characters-long
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "18"
-      - run: npm install
-        working-directory: backend
-      - run: npm test
-        working-directory: backend
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Apply migrations
+        run: npm run migrate
+      - name: Integration tests
+        run: |
+          export UPLOAD_DIR="$RUNNER_TEMP/uploads"
+          npm run test:integration
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Web export (same build as the Docker image)
+        run: npx expo export --platform web
+        env:
+          EXPO_PUBLIC_API_URL: /api
+
+  compose-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate docker-compose files
+        run: |
+          cp .env.example .env
+          sed -i 's/^POSTGRES_PASSWORD=$/POSTGRES_PASSWORD=ci/; s/^JWT_SECRET=$/JWT_SECRET=ci-test-secret-that-is-at-least-32-characters-long/' .env
+          docker compose config --quiet
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
 
   ai-engine-check:
     runs-on: ubuntu-latest

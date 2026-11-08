@@ -1,8 +1,5 @@
-# Task-uri Curente și Loguri de Progres
+# Task Notes and Progress Logs
 
-În folderul curent `docs/tasks/` vom loga (sau vom stoca temporar din partea asistenților AI) liste punctuale cu task-uri mari detaliate pas cu pas.
+This folder holds step-by-step notes for large tasks, written by developers or AI assistants, so work can be resumed on another day exactly where it stopped.
 
-## Scop
-Acest spațiu permite developerului să vină în zile separate și să continue exact de unde a rămas asistentul, urmărind notele lăsate aici.
-
-Sfat pentru AI: Când propui planuri mari, creează aici un fișier temporar de tip `Nume_Task_Implementation.md` și lasă căsuțe de check `[ ]` și explicații.
+Tip for AI assistants: when proposing a large plan, create a file here named `Task_Name_Implementation.md` with `[ ]` checkboxes and short explanations. The current main plan lives in the root [IMPLEMENTATION.md](../../IMPLEMENTATION.md).

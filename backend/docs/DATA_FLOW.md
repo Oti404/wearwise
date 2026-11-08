@@ -1,65 +1,58 @@
-# Arhitectura Datelor și Fluxul DB (DATA_FLOW)
+# Data Flow (DATA_FLOW)
 
-Acest document sumarizează cum interacționăm cu datele în aplicația WearWise. Modulul de Backend Node.js are responsabilitatea de a orchestra fluxurile, apelurile DB și stocarea fișierelor statice.
+How data moves through the WearWise backend: the database, authentication, images and the main business flows.
 
-## 1. Conexiunea la Sistemul SQL (Supabase & Drizzle)
-Folosim **Drizzle ORM** pentru a comunica cu instanța Postgres de pe Supabase. Drizzle este type-safe și menține logica la distanță de "raw queries", oferind un standard stabil.
+## 1. Database (PostgreSQL + Drizzle)
+- **Connection**: `drizzle/db.js` exports `db` (pool, `DATABASE_URL`). SSL is opt-in with `DB_SSL=require`, because the database normally sits on the internal Docker network.
+- **Schema**: `drizzle/schema.ts` is the migration source; `drizzle/schema.js` mirrors it for runtime `require()`. `ai_embedding` is left out of the runtime schema so queries don't return 512-float vectors.
+- **Tables**: `users`, `user_credentials` (password hashes, 1:1 with users), `clothes`, `clothing_images`, `notifications`, `ratings`, `follows` (unique follower/followed pair).
+- **Migrations**: `drizzle/migrations/` (`0000_extensions` → pgvector, `0001_baseline` → tables, `0002_triggers_and_vector_search` → `updated_at` triggers, HNSW index, `get_similar_clothes()`), applied by `drizzle/migrate.js` on every start.
+- **IDs**: `users.auth_uid` equals `users.id` for every account. Services look users up by `auth_uid`, the value carried in the JWT `sub` claim.
 
-- **Configurația principală**: `backend/drizzle/db.js` – de aici importăm instanța `db` globală în oricare serviciu.
-- **Schemele Tabelelor**: `backend/drizzle/schema.js` – Oricând avem nevoie de un tabel nou (ex. Posts, Users, Logs), îl vom descrie prima filă aici și îi vom declara tipurile și relațiile.
+## 2. Request handling
+Example: *a user edits their profile*
+1. `routes/userRoutes.js`: `PATCH /user/:uid` runs `verifyToken` (sets `req.user`) and `validate(updateProfileSchema)`.
+2. `controllers/userController.js`: rejects with 403 unless `req.user.uid === :uid`, then calls the service.
+3. `services/userService.js`: checks phone uniqueness, then `db.update(users)…returning()`.
+4. The controller returns the updated profile as JSON. Errors are thrown as `AppError(message, status)` and formatted by `middlewares/errorHandler.js`.
 
-## 2. Preluarea și Salvarea Datelor (Cine ce face)
-Avem un tipar de MVC extins. Logica "grea" stă în `services`, iar rutele se ocupă strict de parsarea apelului HTTP.
+## 3. Authentication
+1. **Register** (`POST /auth/register`): email is normalised to lowercase; email and phone must be unique. The `users` and `user_credentials` rows are inserted in one transaction, the password is hashed with bcrypt (cost 12), and a JWT is returned.
+2. **Login** (`POST /auth/login`): `identifier` is an email or a phone number. Unknown accounts still run a bcrypt comparison, so response time doesn't reveal whether an account exists. Wrong email and wrong password give the same 401.
+3. **Requests**: the client sends `Authorization: Bearer <jwt>`; `verifyToken` checks the signature and expiry (HS256, `JWT_SECRET`, 7 days). `optionalToken` lets anonymous requests through but rejects invalid tokens.
+4. **Logout** is client-side (the token is discarded). Tokens stay valid until they expire.
 
-**Exemplu Flux: "Adu informațiile pentru Profilul WearWise"**
-1. **Ruta (`routes/userRoutes.js`)**: Primește GET pe `/api/users/profile`. Verifică JWT-ul utilizatorului (auth middleware).
-2. **Controller (`controllers/userController.js`)**: Prelucrează request-ul; "User X vrea profilul său". Apeleză Service-ul.
-3. **Service (`services/userService.js`)**: Face interogarea la baza de date via Drizzle: `await db.select().from(users).where(eq(users.id, userId))`.
-4. Returnează prelucrarea la Controller, care împachetează JSON-ul cu `res.status(200)`.
+## 4. Images
+1. The client uploads each photo to `POST /uploads` (multipart `image`, ≤ 5 MB).
+2. `services/storageService.js` checks the type from the file's magic bytes (JPEG/PNG/WebP), stores it under a random UUID name in `UPLOAD_DIR` (the `uploads` volume) and returns `PUBLIC_API_URL/uploads/<file>`.
+3. The client sends those URLs when creating a listing; the backend stores only the URL in `clothing_images`.
+4. `GET /uploads/<file>` serves the file with a 30-day immutable cache and `Cross-Origin-Resource-Policy: cross-origin`.
 
-## 3. Gestionarea Fișierelor Media (Storage) - Flux Direct
-Imaginile sunt gestionate printr-un **flux direct (Client-to-Cloud)** pentru a reduce încărcarea backend-ului:
+## 5. AI analysis
+`POST /ai/analyze` → type check → `services/aiService.js` forwards the image to `http://ai-engine:7860/classify/file` → returns `{ is_clothing, label, top_predictions, ai_suggestions: { name, category, description, is_safe } }`. The frontend uses it to validate photos and pre-fill the listing form.
 
-1. **Upload**: Frontend-ul ([useClothes.ts](file:///d:/Workshop/WearWiseApp/frontend/hooks/useClothes.ts)) urcă imaginea direct în bucket-ul Supabase Storage.
-2. **URL**: Supabase întoarce un `Public URL` (ex. `https://supabase.com/.../image.jpg`).
-3. **Link**: Frontend-ul trimite acest URL către **Backend** prin cererea de creare produs.
-4. **DB**: Backend-ul salvează doar *link-ul textual* în baza de date PostgreSQL.
-
-## 4. Autentificarea - Flux Hibrid
-1. **Identitate**: Frontend-ul folosește SDK-ul Supabase pentru login/signup (direct cu Supabase).
-2. **Profil**: Imediat după login, frontend-ul apelează backend-ul (`/register` sau `/user/:id`) pentru a sincroniza datele user-ului în tabelele noastre din SQL.
-
-## 5. Diagrama de Date (High Level)
+## 6. Checkout and ratings
+1. **Checkout** (`POST /checkout`), in one transaction for each item:
+   - claim it with `UPDATE clothes SET status='sold', buyer_id=… WHERE id=… AND status='active' AND user_id<>buyer`
+   - if no row was claimed, the whole order is rolled back with 404, 400 or 409
+   - otherwise notify the seller (`sale_notification`), send the buyer a `rating_request` (status `pending`), and increment the seller's `sales_count`
+2. **Rating** (`POST /ratings`): the buyer sends `notificationId`. The service claims that pending request with a conditional update (owner, type and status must match), then inserts the rating with the seller and item taken from the request, notifies the seller and recalculates their average.
 
 ```mermaid
 graph TD
-    subgraph Frontend [Aplicatie Mobile / Expo]
-        A[User Actions]
+    subgraph Client [Web app]
+        A[User actions]
     end
-
-    subgraph Supabase [Supabase Cloud]
-        S1[(Auth System)]
-        S2[Storage Buckets]
-        S3[(PostgreSQL DB)]
+    subgraph Backend [Express API]
+        R[Routes + middleware] --> S[Services]
     end
-
-    subgraph Backend [Backend Node.js]
-        B[Express API]
-        D[Drizzle ORM]
-    end
-
-    %% Flux direct Auth & Storage
-    A -- "Login / Signup" --> S1
-    A -- "Upload Images" --> S2
-
-    %% Flux prin Backend
-    A -- "API Calls (JSON)" --> B
-    B -- "Query / Insert" --> D
-    D --- S3
+    A -->|/api JSON + JWT| R
+    A -->|/api/uploads multipart| R
+    S --> DB[(PostgreSQL)]
+    S --> U[(uploads volume)]
+    S -->|classify| AI[AI engine]
 ```
 
-## 6. Unelte și Scripturi pentru Date
-Am organizat fișierele utilitare în folderul `backend/database/seeds/`:
-- `sql_seed.js`: Script principal folosit pentru popularea tabelelor cu un set de date dummy utile pentru dev/testare.
-- `setup_storage_policy.js`: Asigură setarea corectă a permisiunilor de citire/scriere (RLS) la Storage Bucket.
-- Mutați orice utilitar sau automatizare pe DB de pe viitor în acest folder pentru a păstra folder-ul root al backend-ului curat.
+## 7. Data tools
+- `database/seeds/seed.js` (`npm run seed`): demo account plus listings from `database/seeds/wardrobe/`, with images stored through the same storage service as real uploads.
+- Put future data scripts in `database/` so the backend root stays clean.

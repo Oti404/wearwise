@@ -1,0 +1,12 @@
+# Development overlay: publishes the database and AI engine on localhost so the backend and
+# frontend can run outside Docker with hot reload. Never use this file on the server.
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db ai-engine
+
+services:
+  db:
+    ports:
+      # 55432 avoids Windows reserved ranges and any local Postgres on 5432
+      - "127.0.0.1:${DEV_DB_PORT:-55432}:5432"
+  ai-engine:
+    ports:
+      - "127.0.0.1:${DEV_AI_PORT:-7860}:7860"
