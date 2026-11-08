@@ -17,7 +17,6 @@ const setupSecurity = (app) => {
   app.use(helmet());
 
   // Data sanitization against NoSQL query injection (if using MongoDB)
-  // Even if using Firebase, sanitization is good practice for generic inputs
   app.use(mongoSanitize());
 
   // Data sanitization against XSS

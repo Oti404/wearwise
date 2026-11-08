@@ -6,7 +6,7 @@ const { eq, and, ne, desc, lt, inArray, notInArray, sql } = require('drizzle-orm
 const AppError = require('../middlewares/AppError');
 
 /**
- * Get the SQL user row by Firebase/Supabase authUID.
+ * Get the SQL user row by auth UID.
  */
 async function getUserByAuthUid(authUid) {
     const user = await db.query.users.findFirst({

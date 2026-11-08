@@ -2,14 +2,13 @@
 
 /**
  * CLOTHES SQL SERVICE — WearWise 2.0
- * All data operations go through Drizzle ORM → Supabase (PostgreSQL).
+ * All data operations go through Drizzle ORM → PostgreSQL.
  */
 
 const { db } = require('../drizzle/db');
 const { clothes, clothingImages, users } = require('../drizzle/schema');
 const { eq, desc, ne, and, lt, or } = require('drizzle-orm');
 const AppError = require('../middlewares/AppError');
-const { supabase } = require('../config/supabase');
 
 /**
  * GET paginated active clothes feed.
@@ -104,7 +103,6 @@ async function getClothesById(id) {
  * GET user's closet — items they own (active).
  */
 async function getUserCloset(authUid) {
-    // Find the SQL user by Firebase auth UID
     const user = await db.query.users.findFirst({
         where: eq(users.authUid, authUid),
     });
@@ -129,29 +127,14 @@ async function getUserCloset(authUid) {
 
 /**
  * CREATE a new clothes item with images.
- * authUid = Firebase UID from verified token.
+ * authUid = users.auth_uid from the verified token.
  */
 async function createClothesItem(authUid, data) {
-    // Find corresponding SQL user
-    let sqlUser = await db.query.users.findFirst({
+    const sqlUser = await db.query.users.findFirst({
         where: eq(users.authUid, authUid),
     });
-
-    // Auto-create SQL profile if it doesn't exist yet (Fetch from Supabase Auth)
-    if (!sqlUser) {
-        const { data: { user: sbUser }, error } = await supabase.auth.admin.getUserById(authUid);
-        if (error || !sbUser) {
-            throw new AppError('Utilizatorul nu a fost găsit în Auth.', 404);
-        }
-
-        const [created] = await db.insert(users).values({
-            authUid,
-            email: sbUser.email || `${authUid}@unknown.com`,
-            firstName: sbUser.user_metadata?.first_name || 'User',
-            lastName: sbUser.user_metadata?.last_name || '',
-        }).returning();
-        sqlUser = created;
-    }
+    // Every token belongs to a registered user, so a miss means the account was deleted.
+    if (!sqlUser) throw new AppError('User not found.', 404);
 
     // Images are uploaded beforehand via POST /uploads; only their URLs arrive here.
     const imageUrls = data.images || [];

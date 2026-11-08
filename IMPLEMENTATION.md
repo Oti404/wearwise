@@ -197,11 +197,11 @@ Also removed in Step 1 (2026-11-08): the Render/HF deploy path (`render.yaml`, `
 | 5 | `backend/middlewares/verifyToken.js` | **DONE.** Verify our JWT instead of `supabase.auth.getUser()`; keep the `req.user = { uid, id, email }` shape so downstream code is unchanged |
 | 6 | `backend/services/storageService.js` | **DONE.** [C] File type detected from magic bytes, not the client MIME header. Write files to `UPLOAD_DIR` (volume) with random names, validate MIME (jpeg/png/webp) and size (5 MB); return `${PUBLIC_API_URL}/uploads/<file>` |
 | 7 | `backend/routes/uploadRoutes.js` (new) + `app.js` | **DONE.** [C] `/uploads` static is mounted before the rate limiter (a feed page loads many images) and sends `Cross-Origin-Resource-Policy: cross-origin` (helmet blocks other origins by default). Own `uploadLimiter` (60/15 min). Dead base64 branch removed from `createClothesItem`. `POST /uploads` (auth, `multer` memory storage) → storageService; `express.static(UPLOAD_DIR)` at `/uploads` with long cache headers |
-| 8 | `services/clothesSqlService.js`, `services/userService.js` | Remove `supabase.auth.admin.getUserById` fallbacks — users always exist in SQL after register |
-| 9 | Delete `config/supabase.js`, `services/supabaseService.ts`, `types/supabase.ts`, `supabase/`, `scripts/test_add_product.js`, `database/seeds/sql_seed.js`, `sql_seed_manual.js` | Supabase/Firebase-only code |
-| 10 | `database/seeds/seed.js` (new) | Demo users + listings against the new schema (replaces the broken seeds) |
-| 11 | `package.json` | Remove `@supabase/supabase-js`, `googleapis`, `@opentelemetry/api`; add `bcryptjs`, `jsonwebtoken`; scripts `migrate`, `seed`, `db:generate` |
-| 12 | `.env.example` | Replace Firebase/Supabase vars with `DATABASE_URL`, `JWT_SECRET`, `UPLOAD_DIR`, `PUBLIC_API_URL`, `AI_ENGINE_URL`, `ALLOWED_ORIGINS` |
+| 8 | `services/clothesSqlService.js`, `services/userService.js` | **DONE.** Remove `supabase.auth.admin.getUserById` fallbacks — users always exist in SQL after register |
+| 9 | Delete `config/supabase.js`, `services/supabaseService.ts`, `types/supabase.ts`, `supabase/`, `scripts/test_add_product.js`, `database/seeds/sql_seed.js`, `sql_seed_manual.js` | **DONE** (also `drizzle/db.ts`, `setup_storage_policy.js`, `test_seed.js`). Supabase/Firebase-only code |
+| 10 | `database/seeds/seed.js` (new) | **DONE.** [C] Demo catalog moved from `frontend/assets/wardrobe` (never imported by the app) to `backend/database/seeds/wardrobe` so the seed can run inside the backend container. Creates `demo@wearwise.app` (password from `SEED_PASSWORD`) + 21 listings; idempotent. Demo users + listings against the new schema (replaces the broken seeds) |
+| 11 | `package.json` | **DONE.** Remove `@supabase/supabase-js`, `googleapis`, `@opentelemetry/api`; add `bcryptjs`, `jsonwebtoken`; scripts `migrate`, `seed`, `db:generate` |
+| 12 | `.env.example` | **DONE.** Replace Firebase/Supabase vars with `DATABASE_URL`, `JWT_SECRET`, `UPLOAD_DIR`, `PUBLIC_API_URL`, `AI_ENGINE_URL`, `ALLOWED_ORIGINS` |
 
 ## Step 3 — Frontend: web-only, backend auth and uploads
 | # | File | Change |
@@ -242,4 +242,6 @@ Each item is at least one commit. The app runs locally after Step 3 (`docker com
 - No password reset / email verification in this scope (Supabase used to provide it). Adding it needs an SMTP provider — proposed as a follow-up.
 - JWT is stateless: logout only deletes the token client-side, and a stolen token stays valid until expiry (7 days). Acceptable for launch; refresh tokens can come later.
 - Uploads on a volume are lost if the VPS disk is lost — `deploy/backup.sh` must copy off-server to be a real backup.
+- [C] Demo catalog product names/codes look like a real retailer's catalog; if the photos are theirs, use the seed only for local/demo environments, not the public site.
+- [C] Found, not fixed (out of scope): `GET /user/:identifier` is public and accepts email or phone, returning the full profile (email, phone) — enables user enumeration and exposes PII. `POST /ai/analyze` has no auth and no file-size limit. `middlewares/security.js` is unused and requires packages that are not installed. `CODING_STANDARDS.md` requires `deleted_at` on all tables; no table has it.
 - The live Render/HF/Supabase deployment will drift from the code and should be shut down once the VPS is live.

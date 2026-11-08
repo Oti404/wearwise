@@ -2,17 +2,16 @@
 
 /**
  * USER SERVICE SQL — WearWise 2.0
- * All user operations and authentication go through Supabase.
+ * Profile reads and updates; account creation and login live in authService.
  */
 
 const { db } = require('../drizzle/db');
 const { users } = require('../drizzle/schema');
 const { eq, or } = require('drizzle-orm');
 const AppError = require('../middlewares/AppError');
-const { supabase } = require('../config/supabase');
 
 /**
- * Get user by Firebase UID, email, or phone.
+ * Get user by auth UID, email, or phone.
  */
 async function getUserByIdentifier(identifier) {
     let user = await db.query.users.findFirst({
@@ -29,24 +28,6 @@ async function getUserByIdentifier(identifier) {
         user = await db.query.users.findFirst({
             where: eq(users.phone, identifier),
         });
-    }
-
-    // Auto-sync: if not in SQL but exists in Supabase Auth, create profile
-    if (!user) {
-        try {
-            const { data: { user: sbUser }, error } = await supabase.auth.admin.getUserById(identifier);
-            if (sbUser && !error) {
-                const [created] = await db.insert(users).values({
-                    authUid: sbUser.id,
-                    email: sbUser.email || `${sbUser.id}@unknown.com`,
-                    firstName: sbUser.user_metadata?.first_name || 'User',
-                    lastName: sbUser.user_metadata?.last_name || '',
-                }).returning();
-                user = created;
-            }
-        } catch {
-            throw new AppError('Utilizatorul nu a fost găsit.', 404);
-        }
     }
 
     if (!user) throw new AppError('Utilizatorul nu a fost găsit.', 404);
