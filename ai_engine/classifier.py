@@ -250,6 +250,14 @@ class ClothingClassifier:
         self._safety_entries = None
         self._safety_text_features = None
 
+    @property
+    def is_loaded(self) -> bool:
+        return self._model is not None
+
+    def load(self) -> None:
+        """Eagerly load CLIP weights and prompt embeddings (used at service startup)."""
+        self._ensure_loaded()
+
     def _ensure_loaded(self):
         if self._model is not None:
             return

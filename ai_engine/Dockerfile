@@ -13,6 +13,9 @@ WORKDIR /app
 COPY --chown=user requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
+# Bake CLIP weights into the image so the container never downloads them at runtime
+RUN python -c "from transformers import CLIPModel, CLIPProcessor; name = 'openai/clip-vit-base-patch32'; CLIPProcessor.from_pretrained(name, use_fast=False); CLIPModel.from_pretrained(name)"
+
 # Copy the rest of the application
 COPY --chown=user . .
 

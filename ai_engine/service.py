@@ -90,18 +90,31 @@ def _load_image_from_bytes(image_bytes: bytes) -> Image.Image:
     return image
 
 
+def _is_ready() -> bool:
+    classifier = getattr(app.state, "classifier", None)
+    return classifier is not None and classifier.type_classifier.is_loaded
+
+
+def _require_classifier() -> HybridClothingClassifier:
+    if not _is_ready():
+        raise HTTPException(status_code=503, detail="AI engine is not ready.")
+    return app.state.classifier
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize the wrapper, but models won't load until first /classify call
+    # Load all models before accepting traffic so the first /classify call is not a cold load
     checkpoint_path = DEFAULT_BINARY_CHECKPOINT
     print(f"[AI Engine] Initialization using: {checkpoint_path}")
-    
+
     try:
-        app.state.classifier = HybridClothingClassifier(
+        classifier = HybridClothingClassifier(
             binary_checkpoint_path=checkpoint_path
         )
+        classifier.type_classifier.load()
+        app.state.classifier = classifier
         app.state.binary_checkpoint_path = checkpoint_path
-        print("[AI Engine] Hybrid classifier initialized in state.")
+        print("[AI Engine] Hybrid classifier and CLIP model loaded.")
     except Exception as e:
         print(f"[AI Engine] ERROR during lifespan initialization: {e}")
         # We don't want to crash the whole server, but we mark it as failed
@@ -125,7 +138,7 @@ async def root() -> dict[str, str]:
 
 @app.get("/health")
 async def health() -> dict[str, Any]:
-    is_ready = hasattr(app.state, "classifier") and app.state.classifier is not None
+    is_ready = _is_ready()
     return {
         "status": "ok" if is_ready else "error",
         "ready": is_ready,
@@ -146,7 +159,7 @@ async def classify_path(request: PathClassificationRequest) -> dict[str, Any]:
     except UnidentifiedImageError as exc:
         raise HTTPException(status_code=400, detail="Invalid or unsupported image.") from exc
 
-    return _classify_image(app.state.classifier, image, str(image_path), request)
+    return _classify_image(_require_classifier(), image, str(image_path), request)
 
 
 @app.post("/classify/file")
@@ -167,7 +180,7 @@ async def classify_file(
         top_k=top_k,
     )
     return _classify_image(
-        app.state.classifier,
+        _require_classifier(),
         image,
         file.filename or "uploaded-image",
         options,
