@@ -1,7 +1,7 @@
 # Runtime dependencies of the AI service (pinned for reproducible images).
 # The Dockerfile installs torch/torchvision from the CPU-only index first; locally pip picks the default build.
-torch==2.10.0
-torchvision==0.25.0
+torch==2.15.0
+torchvision==0.29.2
 transformers==5.3.0
 fastapi==0.135.1
 uvicorn[standard]==0.42.0
