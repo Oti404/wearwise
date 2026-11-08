@@ -3,10 +3,11 @@
   "version": "2.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node drizzle/migrate.js && node server.js",
     "test": "echo 'No tests defined yet' && exit 0",
-    "dev": "nodemon server.js",
-    "dev:legacy": "nodemon index.js"
+    "dev": "node drizzle/migrate.js && nodemon server.js",
+    "migrate": "node drizzle/migrate.js",
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",

@@ -5,8 +5,22 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1774546294641,
-      "tag": "0000_white_shaman",
+      "when": 1794148134394,
+      "tag": "0000_extensions",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794148137300,
+      "tag": "0001_baseline",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794148140243,
+      "tag": "0002_triggers_and_vector_search",
       "breakpoints": true
     }
   ]

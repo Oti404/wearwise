@@ -2,11 +2,13 @@
 
 /**
  * Drizzle ORM Schema (CommonJS version)
- * Mirrors drizzle/schema.ts for use with Node.js require()
+ * Mirrors drizzle/schema.ts for use with Node.js require().
+ * schema.ts is the source of truth for migrations (drizzle-kit); keep both in sync.
+ * ai_embedding is intentionally omitted here so queries don't return 512-float vectors.
  */
 
-const { pgTable, text, timestamp, uuid, doublePrecision, integer, boolean } = require('drizzle-orm/pg-core');
-const { relations, sql } = require('drizzle-orm');
+const { pgTable, text, timestamp, uuid, doublePrecision, integer, boolean, unique, index } = require('drizzle-orm/pg-core');
+const { relations } = require('drizzle-orm');
 
 // 1. USERS
 const users = pgTable('users', {
@@ -25,6 +27,14 @@ const users = pgTable('users', {
     rating: doublePrecision('rating').default(0),
     followersCount: integer('followers_count').default(0),
     followingCount: integer('following_count').default(0),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// 1b. USER CREDENTIALS (kept out of `users` so profile queries can never leak the hash)
+const userCredentials = pgTable('user_credentials', {
+    userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+    passwordHash: text('password_hash').notNull(),
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -88,7 +98,11 @@ const follows = pgTable('follows', {
     followerId: uuid('follower_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
     followedId: uuid('followed_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
     createdAt: timestamp('created_at').defaultNow(),
-});
+}, (t) => [
+    unique('unique_follow').on(t.followerId, t.followedId),
+    index('idx_follows_follower').on(t.followerId),
+    index('idx_follows_followed').on(t.followedId),
+]);
 
 // RELATIONS
 const clothesRelations = relations(clothes, ({ one, many }) => ({
@@ -126,6 +140,6 @@ const usersRelations = relations(users, ({ many }) => ({
 }));
 
 module.exports = {
-    users, clothes, clothingImages, notifications, ratings, follows,
+    users, userCredentials, clothes, clothingImages, notifications, ratings, follows,
     clothesRelations, imagesRelations, followsRelations, usersRelations,
 };

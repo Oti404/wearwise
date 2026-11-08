@@ -1,7 +1,7 @@
-import { pgTable, text, timestamp, uuid, doublePrecision, integer, boolean, vector } from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
+import { pgTable, text, timestamp, uuid, doublePrecision, integer, boolean, vector, unique, index } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
-// 1. UTILIZATORI (Existenți în Auth, dar profilul e aici)
+// 1. USERS (auth_uid mirrors id; kept for compatibility with existing services)
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   authUid: text("auth_uid").unique().notNull(),
@@ -22,7 +22,15 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// 2. HAINE (Inima sistemului)
+// 1b. USER CREDENTIALS (kept out of `users` so profile queries can never leak the hash)
+export const userCredentials = pgTable("user_credentials", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 2. CLOTHES
 export const clothes = pgTable("clothes", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
@@ -41,7 +49,7 @@ export const clothes = pgTable("clothes", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// 3. IMAGINI (Relație 1:M cu Clothes)
+// 3. CLOTHING IMAGES (1:N with clothes)
 export const clothingImages = pgTable("clothing_images", {
   id: uuid("id").primaryKey().defaultRandom(),
   clothingId: uuid("clothing_id").references(() => clothes.id, { onDelete: 'cascade' }).notNull(),
@@ -51,7 +59,7 @@ export const clothingImages = pgTable("clothing_images", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// 4. NOTIFICĂRI
+// 4. NOTIFICATIONS
 export const notifications = pgTable("notifications", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
@@ -65,7 +73,7 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// 5. RATING-URI
+// 5. RATINGS
 export const ratings = pgTable("ratings", {
   id: uuid("id").primaryKey().defaultRandom(),
   raterId: uuid("rater_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
@@ -82,9 +90,13 @@ export const follows = pgTable("follows", {
   followerId: uuid("follower_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
   followedId: uuid("followed_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (t) => [
+  unique("unique_follow").on(t.followerId, t.followedId),
+  index("idx_follows_follower").on(t.followerId),
+  index("idx_follows_followed").on(t.followedId),
+]);
 
-// RELAȚII
+// RELATIONS
 export const clothesRelations = relations(clothes, ({ one, many }) => ({
   user: one(users, {
     fields: [clothes.userId],
