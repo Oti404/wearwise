@@ -5,7 +5,9 @@ const { z } = require('zod');
 const checkoutSchema = z.object({
   items: z
     .array(z.string().uuid('Invalid item ID.'))
-    .min(1, 'The item list cannot be empty.'),
+    .min(1, 'The item list cannot be empty.')
+    // Bounded arrays keep validation cheap (zod 3 can exhaust memory on huge inputs).
+    .max(50, 'A cart can hold at most 50 items.'),
 });
 
 const relistSchema = z.object({

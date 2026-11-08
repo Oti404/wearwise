@@ -7,7 +7,7 @@ const MODE_ENUM = z.enum(['sell']);
 const createClothesSchema = z.object({
     name: z.string().min(1, 'Item name is required.'),
     description: z.string().optional().default(''),
-    images: z.array(z.string()).optional().default([]),
+    images: z.array(z.string().url()).max(10, 'A listing can have at most 10 images.').optional().default([]),
     category: z.string().optional().default('others'),
     size: z.string().optional().default('N/A'),
     condition: z.string().optional().default('good'),

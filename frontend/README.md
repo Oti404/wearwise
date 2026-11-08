@@ -34,4 +34,4 @@ deploy/       nginx.conf for the production image
 
 **Maps.** `LocationPicker` uses Leaflet with OpenStreetMap tiles and Nominatim geocoding. These are free public services with usage limits; high traffic needs a paid or self-hosted provider.
 
-**Known issue.** `components/ui/` contains unused template components that do not type-check; they are not imported anywhere.
+Type check: `npm run typecheck` (also runs in CI).
