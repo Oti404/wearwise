@@ -232,15 +232,17 @@ Target: one Linux VPS (2 vCPU / 4 GB RAM recommended; [C] measured AI engine: ~3
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `docker-compose.yml` — `db` service | `pgvector/pgvector:pg16`, named volume `pgdata`, healthcheck `pg_isready`, not exposed publicly |
-| 2 | `backend/Dockerfile` | [C] `node:24-alpine` (Node 20 reached end-of-life in April 2026); un-ignore and commit `backend/package-lock.json` (currently in `backend/.gitignore`) so `npm ci` works;, `npm ci --omit=dev`, non-root user, runs `migrate` then `server.js`, `HEALTHCHECK` on `/ping`, `uploads` volume mounted at `UPLOAD_DIR` |
+| 1 | `docker-compose.yml` — `db` service | **DONE.** `pgvector/pgvector:pg16`, named volume `pgdata`, healthcheck `pg_isready`, not exposed publicly |
+| 2 | `backend/Dockerfile` | **DONE.** [C] `node:24-alpine` (Node 20 reached end-of-life in April 2026); un-ignore and commit `backend/package-lock.json` (currently in `backend/.gitignore`) so `npm ci` works;, `npm ci --omit=dev`, non-root user, runs `migrate` then `server.js`, `HEALTHCHECK` on `/ping`, `uploads` volume mounted at `UPLOAD_DIR` |
 | 3 | `ai_engine/Dockerfile` | **DONE in Step 3b.** |
-| 4 | `frontend/Dockerfile` (new) | Multi-stage: `npx expo export --platform web` with `EXPO_PUBLIC_API_URL` build arg → `nginx:alpine` with SPA fallback |
-| 5 | `docker-compose.yml` | Rewrite for production: no bind mounts, `restart: unless-stopped`, `env_file`, internal network; only Caddy publishes ports; backend `depends_on` db + ai-engine with `condition: service_healthy` |
-| 6 | `deploy/Caddyfile` (new) + `caddy` service | Automatic HTTPS: `<domain>` → frontend, `api.<domain>` → backend |
-| 7 | `.dockerignore` per module (new) | Exclude `node_modules`, `.venv`, `.env`, `.expo`, `dist`, logs |
-| 8 | `.env.production.example` (root, new) | Single documented env template (`POSTGRES_PASSWORD`, `JWT_SECRET`, domain, …) |
+| 4 | `frontend/Dockerfile` (new) | **DONE.** [C] nginx also proxies `/api/` → backend, so the site is single-origin (`EXPO_PUBLIC_API_URL=/api`): no CORS, no `api.` subdomain, and the same build works locally and online. Multi-stage: `npx expo export --platform web` with `EXPO_PUBLIC_API_URL` build arg → `nginx:alpine` with SPA fallback |
+| 5 | `docker-compose.yml` | **DONE** (only nginx publishes a port, bound to 127.0.0.1 by default; backend `TRUST_PROXY` so rate limits see real client IPs). Rewrite for production: no bind mounts, `restart: unless-stopped`, `env_file`, internal network; only Caddy publishes ports; backend `depends_on` db + ai-engine with `condition: service_healthy` |
+| 6 | `deploy/Caddyfile` (new) + `caddy` service | PENDING (needs domain). Caddy now only terminates TLS for `<domain>` → nginx. Automatic HTTPS: `<domain>` → frontend, `api.<domain>` → backend |
+| 7 | `.dockerignore` per module (new) | **DONE.** Exclude `node_modules`, `.venv`, `.env`, `.expo`, `dist`, logs |
+| 8 | `.env.example` (root, new) | **DONE** (one file for local and server; root `/.env` git-ignored). Single documented env template (`POSTGRES_PASSWORD`, `JWT_SECRET`, domain, …) |
 | 9 | `deploy/backup.sh` (new) | Nightly `pg_dump` + tar of the `uploads` volume |
+
+- [C] Verified locally (2026-11-08): `docker compose up -d --build` → all 4 services healthy; seed loads 21 listings; 23/23 end-to-end checks through nginx on :8080 (register, login, session restore, demo login, real AI analysis, upload + serve, create listing, feed images, closet, follow, profile ownership, checkout). `/ai/analyze` now detects the image type from file bytes instead of trusting the client header.
 
 ## Step 5 — Docs & CI
 - Rewrite `README.md`, `DEVELOPER_GUIDE.md` and module READMEs around `docker compose up --build`; delete `docs/GIT_WORKFLOW.md` and `docs/TESTING.md` (they describe removed tooling); translate `backend/docs/DATA_FLOW.md`; update the `ARCHITECTURE.md` topology (no Supabase/EAS).

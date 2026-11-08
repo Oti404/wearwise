@@ -27,6 +27,10 @@ const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
 
+// Behind nginx (and Caddy in production) every request would otherwise come from the proxy's IP,
+// making the rate limiters global. TRUST_PROXY = number of proxy hops in front of the backend.
+app.set('trust proxy', Number(process.env.TRUST_PROXY) || false);
+
 // ── Security ──────────────────────────────────────────────────────────────────
 app.use(helmet());
 app.use(cors(corsOptions));

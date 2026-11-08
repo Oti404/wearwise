@@ -1,35 +1,62 @@
-version: '3.8'
+# WearWise — full stack. Same file locally and on the server; differences live in .env.
+#   docker compose up -d --build
+#   open http://localhost:${HTTP_PORT:-8080}
+# Only the frontend (nginx) publishes a port; db, backend and ai-engine stay on the internal network.
+
+name: wearwise
 
 services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "5000:5000"
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
     environment:
-      - NODE_ENV=development
-      - PORT=5000
+      POSTGRES_DB: wearwise
+      POSTGRES_USER: wearwise
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     volumes:
-      - ./backend:/app
-      - /app/node_modules
-    depends_on:
-      - ai-engine
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wearwise -d wearwise"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   ai-engine:
-    build:
-      context: ./ai_engine
-      dockerfile: Dockerfile
-    ports:
-      - "5001:5001"
-    environment:
-      - ENV=development
-    volumes:
-      - ./ai_engine:/app
-      - /app/venv
+    build: ./ai_engine
+    restart: unless-stopped
 
-  # Database service (e.g. Postgres or Redis if needed in future)
-  # db:
-  #   image: postgres:15-alphine
-  #   ports:
-  #     - "5432:5432"
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://wearwise:${POSTGRES_PASSWORD}@db:5432/wearwise
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      PUBLIC_API_URL: ${PUBLIC_URL:-http://localhost:8080}/api
+      ALLOWED_ORIGINS: ${PUBLIC_URL:-http://localhost:8080}
+      AI_ENGINE_URL: http://ai-engine:7860
+      # nginx in front locally; nginx + Caddy on the server
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      SEED_PASSWORD: ${SEED_PASSWORD:-}
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      ai-engine:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        EXPO_PUBLIC_API_URL: /api
+    restart: unless-stopped
+    ports:
+      - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  uploads:
