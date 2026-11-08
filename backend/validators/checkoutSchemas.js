@@ -4,7 +4,7 @@ const { z } = require('zod');
 
 const checkoutSchema = z.object({
   items: z
-    .array(z.string().min(1))
+    .array(z.string().uuid('Invalid item ID.'))
     .min(1, 'The item list cannot be empty.'),
 });
 

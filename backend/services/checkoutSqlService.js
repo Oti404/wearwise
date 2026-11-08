@@ -2,7 +2,7 @@
 
 const { db } = require('../drizzle/db');
 const { clothes, notifications, users } = require('../drizzle/schema');
-const { eq, sql } = require('drizzle-orm');
+const { eq, ne, and, sql } = require('drizzle-orm');
 const AppError = require('../middlewares/AppError');
 
 /**
@@ -18,25 +18,30 @@ async function processCheckout(buyerAuthUid, items) {
     return await db.transaction(async (tx) => {
         const purchasedItemIds = [];
 
-        for (const itemId of items) {
-            // Check availability
-            const item = await tx.query.clothes.findFirst({
-                where: eq(clothes.id, itemId),
-            });
-
-            if (!item) throw new AppError(`Item ${itemId} does not exist.`, 404);
-            if (item.status !== 'active') {
-                throw new AppError(`'${item.name}' is no longer available.`, 409);
-            }
-
-            // Mark as sold
-            await tx.update(clothes)
+        // Duplicate ids in one cart would otherwise make the order fail on its own second copy.
+        for (const itemId of [...new Set(items)]) {
+            // Claim the item atomically: the status check and the update are one statement, so two
+            // simultaneous checkouts can never both succeed (the loser updates zero rows).
+            const [item] = await tx.update(clothes)
                 .set({
                     status: 'sold',
                     buyerId: buyer.id,
                     updatedAt: new Date(),
                 })
-                .where(eq(clothes.id, itemId));
+                .where(and(
+                    eq(clothes.id, itemId),
+                    eq(clothes.status, 'active'),
+                    ne(clothes.userId, buyer.id),
+                ))
+                .returning();
+
+            if (!item) {
+                // Explain why the claim failed; the whole order is rolled back by the throw.
+                const existing = await tx.query.clothes.findFirst({ where: eq(clothes.id, itemId) });
+                if (!existing) throw new AppError(`Item ${itemId} does not exist.`, 404);
+                if (existing.userId === buyer.id) throw new AppError(`You cannot buy your own item '${existing.name}'.`, 400);
+                throw new AppError(`'${existing.name}' is no longer available.`, 409);
+            }
 
             // Create notification for seller
             await tx.insert(notifications).values({
