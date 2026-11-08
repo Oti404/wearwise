@@ -2,7 +2,7 @@
 # The Dockerfile installs torch/torchvision from the CPU-only index first; locally pip picks the default build.
 torch==2.10.0
 torchvision==0.25.0
-transformers==5.3.0
+transformers==5.22.1
 fastapi==0.135.1
 uvicorn[standard]==0.42.0
 python-multipart==0.0.22
