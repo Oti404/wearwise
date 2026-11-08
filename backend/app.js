@@ -69,7 +69,7 @@ app.use('/follows', followRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
 app.use((req, res, next) => {
-  next(new AppError(`Route ${req.method} ${req.url} nu există.`, 404));
+  next(new AppError(`Route ${req.method} ${req.url} does not exist.`, 404));
 });
 
 // ── Global error handler (must be last) ───────────────────────────────────────

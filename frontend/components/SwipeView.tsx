@@ -165,7 +165,6 @@ const SwipeView = () => {
     setDeckKey((prev: number) => prev + 1);
   };
 
-  // Variabile animații adiționale (butoane) șterse
 
   const hasActiveFilters = filters.modes.length > 0 || filters.categories.length > 0
     || filters.sizes.length > 0 || filters.conditions.length > 0;
@@ -810,7 +809,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
     marginTop: 60,
-    marginLeft: 25, // <-- Modifică această valoare pentru a găsi poziția perfectă
+    marginLeft: 25,
   },
   overlayIconRight: {
     alignItems: 'center',

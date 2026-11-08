@@ -24,7 +24,7 @@ const errorHandler = (err, req, res, next) => {
 
   return res.status(500).json({
     status: 'error',
-    message: 'A apărut o eroare internă. Încearcă din nou.',
+    message: 'Something went wrong on our side. Please try again.',
   });
 };
 

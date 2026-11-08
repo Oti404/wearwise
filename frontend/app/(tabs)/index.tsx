@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import SwipeView from '@/components/SwipeView'; // Importăm componenta creată de tine
+import SwipeView from '@/components/SwipeView';
 
 export default function HomeScreen() {
   return (
     <View style={styles.container}>
-      {/* Randăm componenta principală de swipe */}
+      {/* Main swipe feed */}
       <SwipeView />
     </View>
   );

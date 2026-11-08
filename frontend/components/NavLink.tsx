@@ -5,10 +5,10 @@ import { useNavigation, useNavigationState } from '@react-navigation/native';
 interface NavLinkProps {
   to: string; // Numele rutei din stack-ul de navigare
   children: React.ReactNode;
-  className?: ViewStyle;        // Stilul de bază
-  activeClassName?: ViewStyle;  // Stilul când ruta e activă
+  className?: ViewStyle;        // Base style
+  activeClassName?: ViewStyle;  // Style when the route is active
   textStyle?: TextStyle;        // Stilul textului
-  activeTextStyle?: TextStyle;  // Stilul textuluyi când e activ
+  activeTextStyle?: TextStyle;  // Text style when active
 }
 
 export const NavLink = ({ 
@@ -21,7 +21,7 @@ export const NavLink = ({
 }: NavLinkProps) => {
   const navigation = useNavigation<any>();
   
-  // Obținem numele rutei curente pentru a verifica dacă este "active"
+  // Current route name, used to decide whether the link is "active"
   const activeRouteName = useNavigationState((state) => 
     state?.routes[state.index]?.name
   );

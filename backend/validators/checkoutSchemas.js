@@ -5,11 +5,11 @@ const { z } = require('zod');
 const checkoutSchema = z.object({
   items: z
     .array(z.string().min(1))
-    .min(1, 'Lista de articole nu poate fi goală.'),
+    .min(1, 'The item list cannot be empty.'),
 });
 
 const relistSchema = z.object({
-  itemId: z.string().min(1, 'ID-ul articolului este obligatoriu.'),
+  itemId: z.string().min(1, 'Item ID is required.'),
   updates: z
     .object({
       name: z.string().min(1).optional(),

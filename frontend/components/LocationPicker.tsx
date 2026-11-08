@@ -217,7 +217,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
             <X size={24} color="#2B2B2B" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Selectează Locația</Text>
+          <Text style={styles.headerTitle}>Select Location</Text>
           <View style={{ width: 48 }} />
         </View>
 
@@ -227,7 +227,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
               <Search size={20} color="#5A2D82" />
               <TextInput
                 style={styles.input}
-                placeholder="Căutare după adresă..."
+                placeholder="Search by address..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 onSubmitEditing={handleSearch}
@@ -235,7 +235,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
               {loading && <ActivityIndicator size="small" color="#5A2D82" />}
             </View>
             <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
-              <Text style={styles.searchBtnText}>CAUTĂ</Text>
+              <Text style={styles.searchBtnText}>SEARCH</Text>
             </TouchableOpacity>
           </View>
 
@@ -277,10 +277,10 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
               )}
               <View style={{ flex: 1 }}>
                 <Text style={styles.selectionLabel}>
-                  {addressLoading ? 'Se actualizează locația...' : 'Adresa Selectată'}
+                  {addressLoading ? 'Updating location...' : 'Selected Address'}
                 </Text>
                 <Text style={styles.selectionText} numberOfLines={2}>
-                  {address || 'Mută harta pentru a actualiza adresa'}
+                  {address || 'Move the map to update the address'}
                 </Text>
               </View>
             </View>
@@ -289,7 +289,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
               onPress={handleConfirm}
               disabled={!address || addressLoading}
             >
-              <Text style={styles.confirmText}>CONFIRMĂ ACEST PUNCT</Text>
+              <Text style={styles.confirmText}>CONFIRM THIS LOCATION</Text>
               <Check size={20} color="#F4C542" strokeWidth={3} />
             </TouchableOpacity>
           </View>

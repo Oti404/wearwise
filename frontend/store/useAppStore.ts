@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Definim structura unui obiect din coș
+// Shape of a cart entry
 interface CartItem {
   id: string | number;
   name: string;
@@ -33,23 +33,23 @@ interface User {
 }
 
 interface AppState {
-  // Navigare
+  // Navigation
   view: 'swipe' | 'profile' | 'notifications' | 'cart';
   setView: (view: 'swipe' | 'profile' | 'notifications' | 'cart') => void;
   
-  // Autentificare
+  // Authentication
   isLoggedIn: boolean;
   user: User | null;
   login: (userData: User) => void;
   logout: () => void;
 
-  // Coș de cumpărături
+  // Shopping cart
   cart: CartItem[];
   addToCart: (item: CartItem) => void;
   removeFromCart: (id: string | number) => void;
   clearCart: () => void;
 
-  // Filtrare și Radius
+  // Filtering and radius
   radius: number;
   setRadius: (value: number) => void;
   skipped: (string | number)[];
@@ -73,7 +73,7 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      // Valori inițiale
+      // Initial values
       view: 'swipe',
       isLoggedIn: false,
       user: null,
@@ -81,14 +81,14 @@ export const useAppStore = create<AppState>()(
       radius: 5,
       skipped: [],
 
-      // Acțiuni Navigare
+      // Navigation actions
       setView: (view) => set({ view }),
 
-      // Acțiuni Autentificare
+      // Auth actions
       login: (userData) => set({ isLoggedIn: true, user: userData }),
       logout: () => set({ isLoggedIn: false, user: null }),
 
-      // Acțiuni Coș
+      // Cart actions
       addToCart: (item) => set((state) => ({ 
         cart: [...state.cart, item] 
       })),
@@ -99,7 +99,7 @@ export const useAppStore = create<AppState>()(
 
       clearCart: () => set({ cart: [] }),
 
-      // Acțiuni Radius și Skip (Filtrare)
+      // Radius and skip actions (filtering)
       setRadius: (value) => set({ radius: value }),
 
       skipItem: (id) => set((state) => ({ 

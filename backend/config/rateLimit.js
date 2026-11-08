@@ -10,7 +10,7 @@ const generalLimiter = rateLimit({
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Prea multe cereri. Încearcă din nou peste 15 minute.' },
+  message: { status: 'error', message: 'Too many requests. Try again in 15 minutes.' },
 });
 
 /**
@@ -21,7 +21,7 @@ const writeLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Prea multe cereri. Încearcă din nou peste 15 minute.' },
+  message: { status: 'error', message: 'Too many requests. Try again in 15 minutes.' },
 });
 
 /**
@@ -32,7 +32,7 @@ const uploadLimiter = rateLimit({
   max: 60,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many uploads. Try again in 15 minutes.' },
+  message: { status: 'error', message: 'Too many uploads. Try again in 15 minutes.' },
 });
 
 module.exports = { generalLimiter, writeLimiter, uploadLimiter };

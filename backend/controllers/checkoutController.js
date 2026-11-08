@@ -6,7 +6,7 @@ const checkout = async (req, res) => {
   const { items } = req.body;
   // buyerUid comes from the verified token
   const soldIds = await checkoutService.processCheckout(req.user.uid, items);
-  res.json({ success: true, message: 'Comanda procesată cu succes.', soldIds });
+  res.json({ success: true, message: 'Order completed.', soldIds });
 };
 
 const relist = async (req, res) => {

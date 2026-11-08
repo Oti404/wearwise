@@ -66,7 +66,7 @@ export default function RootLayout() {
   const router = useRouter();
   const navigationState = useRootNavigationState();
 
-  // === FIX PENTRU WARNING-UL `aria-hidden` NATIV DIN BROWSER ===
+  // Blur the focused element on navigation: avoids the browser's `aria-hidden` focus warning
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       const activeEl = document.activeElement as HTMLElement | null;

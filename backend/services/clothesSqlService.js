@@ -83,8 +83,8 @@ async function getClothesById(id) {
         with: { images: true, user: true },
     });
 
-    if (!item) throw new AppError('Haina nu a fost găsită.', 404);
-    if (item.status === 'deleted') throw new AppError('Acest articol a fost șters.', 404);
+    if (!item) throw new AppError('Item not found.', 404);
+    if (item.status === 'deleted') throw new AppError('This item has been deleted.', 404);
 
     return {
         ...item,

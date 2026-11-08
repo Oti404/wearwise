@@ -194,7 +194,7 @@ export default function ItemDetailsScreen() {
           )}
         </View>
 
-        {/* INFORMAȚII */}
+        {/* DETAILS */}
         <View style={styles.detailsContainer}>
           <View style={styles.headerRow}>
             {renderModeBadge(item.mode)}

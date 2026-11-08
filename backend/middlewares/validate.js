@@ -18,7 +18,7 @@ const validate = (schema) => (req, res, next) => {
     }));
     return res.status(400).json({
       status: 'error',
-      message: 'Date invalide.',
+      message: 'Invalid data.',
       errors,
     });
   }

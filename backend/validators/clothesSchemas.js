@@ -5,14 +5,14 @@ const { z } = require('zod');
 const MODE_ENUM = z.enum(['sell']);
 
 const createClothesSchema = z.object({
-    name: z.string().min(1, 'Numele articolului este obligatoriu.'),
+    name: z.string().min(1, 'Item name is required.'),
     description: z.string().optional().default(''),
     images: z.array(z.string()).optional().default([]),
     category: z.string().optional().default('others'),
     size: z.string().optional().default('N/A'),
     condition: z.string().optional().default('good'),
     mode: MODE_ENUM,
-    price: z.number().positive('Prețul trebuie să fie pozitiv.'),
+    price: z.number().positive('Price must be positive.'),
     latitude: z.number().optional().nullable(),
     longitude: z.number().optional().nullable(),
   });

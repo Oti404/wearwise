@@ -13,7 +13,7 @@ async function processCheckout(buyerAuthUid, items) {
     const buyer = await db.query.users.findFirst({
         where: eq(users.authUid, buyerAuthUid),
     });
-    if (!buyer) throw new AppError('Cumpărătorul nu a fost găsit.', 404);
+    if (!buyer) throw new AppError('Buyer not found.', 404);
 
     return await db.transaction(async (tx) => {
         const purchasedItemIds = [];
@@ -24,9 +24,9 @@ async function processCheckout(buyerAuthUid, items) {
                 where: eq(clothes.id, itemId),
             });
 
-            if (!item) throw new AppError(`Articolul ${itemId} nu există.`, 404);
+            if (!item) throw new AppError(`Item ${itemId} does not exist.`, 404);
             if (item.status !== 'active') {
-                throw new AppError(`'${item.name}' nu mai este disponibil.`, 409);
+                throw new AppError(`'${item.name}' is no longer available.`, 409);
             }
 
             // Mark as sold
@@ -42,8 +42,8 @@ async function processCheckout(buyerAuthUid, items) {
             await tx.insert(notifications).values({
                 userId: item.userId,
                 type: 'sale_notification',
-                title: 'Articol Vândut! 🎉',
-                message: `Felicitări! Ai vândut '${item.name}'.`,
+                title: 'Item sold',
+                message: `Congratulations! You sold '${item.name}'.`,
                 itemId: item.id,
                 unread: true,
             });
@@ -52,8 +52,8 @@ async function processCheckout(buyerAuthUid, items) {
             await tx.insert(notifications).values({
                 userId: buyer.id,
                 type: 'rating_request',
-                title: 'Evaluează achiziția ⭐️',
-                message: `Cum a fost experiența cu '${item.name}'? Lasă un rating vânzătorului.`,
+                title: 'Rate your purchase',
+                message: `How was your experience with '${item.name}'? Leave the seller a rating.`,
                 itemId: item.id,
                 sellerId: item.userId,
                 unread: true,
@@ -83,15 +83,15 @@ async function relist(buyerAuthUid, itemId, updates = {}) {
     const buyer = await db.query.users.findFirst({
         where: eq(users.authUid, buyerAuthUid),
     });
-    if (!buyer) throw new AppError('Utilizatorul nu a fost găsit.', 404);
+    if (!buyer) throw new AppError('User not found.', 404);
 
     const item = await db.query.clothes.findFirst({
         where: eq(clothes.id, itemId),
     });
 
-    if (!item) throw new AppError('Articolul nu există.', 404);
+    if (!item) throw new AppError('Item not found.', 404);
     if (item.buyerId !== buyer.id) {
-        throw new AppError('Doar persoana care a cumpărat articolul îl poate re-lista.', 403);
+        throw new AppError('Only the buyer of this item can relist it.', 403);
     }
 
     await db.update(clothes)

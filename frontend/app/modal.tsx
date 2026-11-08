@@ -6,10 +6,10 @@ export default function ModalScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Cart or Filters</Text>
       <Text style={styles.subtitle}>
-        Acesta este un ecran tip modal pe care îl poți folosi pentru detalii.
+        Use this modal screen for details.
       </Text>
 
-      {/* Buton de închidere stilizat */}
+      {/* Styled close button */}
       <Link href="/" asChild dismissTo>
         <TouchableOpacity style={styles.button}>
           <Text style={styles.buttonText}>Go back to Swipe</Text>
@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#FAF7F2', // Culoarea crem de fundal a aplicației tale
+    backgroundColor: '#FAF7F2', // App cream background
   },
   title: {
     fontSize: 24,
@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   buttonText: {
-    color: '#F4C542', // Auriul pentru contrast
+    color: '#F4C542', // Gold for contrast
     fontWeight: 'bold',
     fontSize: 16,
   },

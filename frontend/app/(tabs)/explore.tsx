@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, FlatList } from 'react-native'; // Folosim View și Text standard
+import { StyleSheet, View, Text, FlatList } from 'react-native'; 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bell, Heart, MessageCircle } from 'lucide-react-native';
 

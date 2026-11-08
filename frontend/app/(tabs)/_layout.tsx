@@ -1,11 +1,11 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { BottomNav } from '@/components/BottomNav'; // Importăm componenta ta
+import { BottomNav } from '@/components/BottomNav';
 
 export default function TabLayout() {
   return (
     <Tabs
-      // Această linie este cheia: înlocuim bara implicită cu cea creată de tine
+      // Replace the default tab bar with the custom bottom navigation
       tabBar={(props) => <BottomNav {...props} />}
       screenOptions={{
         headerShown: false,
@@ -27,7 +27,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 3. Ecranul de Activitate/Notificări */}
+      {/* 3. Activity / notifications screen */}
       <Tabs.Screen
         name="notifications"
         options={{
