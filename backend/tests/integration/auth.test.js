@@ -49,7 +49,7 @@ describe('AuthService (HTTP)', { skip }, () => {
 
   it('should create an account and return a token when registering', async () => {
     const res = await call('POST', '/auth/register', {
-      email: email.toUpperCase(), password, firstName: 'Ana', lastName: 'Pop', phone: '0712345678',
+      email: email.toUpperCase(), password, firstName: 'Ana', lastName: 'Pop', phone: `07${String(Date.now()).slice(-8)}${Math.floor(Math.random() * 10)}`,
     });
     assert.equal(res.status, 201);
     assert.ok(res.body.token);
@@ -62,20 +62,20 @@ describe('AuthService (HTTP)', { skip }, () => {
 
   it('should reject a duplicate email with 409', async () => {
     const res = await call('POST', '/auth/register', {
-      email, password, firstName: 'Ana', lastName: 'Pop', phone: '0712345678',
+      email, password, firstName: 'Ana', lastName: 'Pop', phone: `07${String(Date.now()).slice(-8)}${Math.floor(Math.random() * 10)}`,
     });
     assert.equal(res.status, 409);
   });
 
   it('should log in when the password is correct', async () => {
-    const res = await call('POST', '/auth/login', { email, password });
+    const res = await call('POST', '/auth/login', { identifier: email, password });
     assert.equal(res.status, 200);
     assert.equal(res.body.user.uid, uid);
   });
 
   it('should return the same 401 for a wrong password and an unknown email', async () => {
-    const wrong = await call('POST', '/auth/login', { email, password: 'wrong-password' });
-    const unknown = await call('POST', '/auth/login', { email: 'nobody@example.com', password });
+    const wrong = await call('POST', '/auth/login', { identifier: email, password: 'wrong-password' });
+    const unknown = await call('POST', '/auth/login', { identifier: 'nobody@example.com', password });
     assert.equal(wrong.status, 401);
     assert.equal(unknown.status, 401);
     assert.equal(wrong.body.message, unknown.body.message);

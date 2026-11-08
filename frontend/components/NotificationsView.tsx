@@ -73,10 +73,8 @@ export function NotificationsView() {
     if (!user?.uid || !selectedNotif) return;
     
     try {
+      // The server derives rater, seller and item from the token and the notification.
       await submitRating({
-        raterId: user.uid,
-        targetUserId: selectedNotif.sellerId,
-        itemId: selectedNotif.itemId,
         rating,
         comment,
         notificationId: selectedNotif.id,

@@ -213,7 +213,7 @@ export const useClothes = () => {
   const fetchNotifications = async (userId: string) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/notifications/${userId}`);
+      const response = await fetch(`${API_URL}/notifications/${userId}`, { headers: await authHeaders() });
       if (!response.ok) throw new Error('Could not load notifications.');
       return await response.json();
     } catch (err: any) {

@@ -58,23 +58,14 @@ export const useAuth = () => {
     return startSession(response, 'Could not create your account.');
   });
 
+  // identifier: email address or phone number; the backend resolves either.
   const signIn = (identifier: string, parola: string) => run(async () => {
-    let email = identifier;
-
-    // Phone sign-in: resolve the phone number to the account email first.
-    if (!identifier.includes('@')) {
-      const response = await fetch(`${API_URL}/user/${encodeURIComponent(identifier)}`);
-      const result = await response.json();
-      if (!response.ok) throw new Error('Phone number not found.');
-      email = result.email;
-    }
-
     const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: parola }),
+      body: JSON.stringify({ identifier, password: parola }),
     });
-    return startSession(response, 'Invalid email or password.');
+    return startSession(response, 'Invalid email, phone number or password.');
   });
 
   const signOut = async () => {

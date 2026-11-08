@@ -43,9 +43,10 @@ const LoginScreen = () => {
       await signIn(identifier, password);
     } catch (err: any) {
       const msg = err.message;
-      if (msg.includes('email') || msg.includes('cont') || msg.includes('identificare')) {
+      // Backend messages are English; credential errors are shown under the identifier field.
+      if (/email|phone|account/i.test(msg)) {
         setIdentifierError(msg);
-      } else if (msg.includes('parolă') || msg.includes('parola')) {
+      } else if (/password/i.test(msg)) {
         setPasswordError(msg);
       } else {
         Alert.alert('Authentication error', msg);

@@ -205,7 +205,7 @@ async function getSuggestedUsers(authUid, limit = 20) {
             return {
                 id: u.id,
                 authUid: u.authUid,
-                firstName: u.firstName || u.email.split('@')[0], // fallback to email alias
+                firstName: u.firstName || 'User',
                 lastName: u.lastName || '',
                 avatarUrl: u.avatarUrl,
                 city: u.city,
@@ -339,10 +339,10 @@ async function searchUsers(query, limit = 20) {
     const searchTerm = `%${query.toLowerCase()}%`;
 
     const results = await db.execute(
-        sql`SELECT id, auth_uid, email, first_name, last_name, avatar_url, city, followers_count, following_count, sales_count
+        // Name only: matching on email would let anyone probe which addresses have accounts.
+        sql`SELECT id, auth_uid, first_name, last_name, avatar_url, city, followers_count, following_count, sales_count
             FROM users
             WHERE LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) LIKE ${searchTerm}
-               OR LOWER(email) LIKE ${searchTerm}
             ORDER BY followers_count DESC
             LIMIT ${parseInt(limit, 10) || 20}`
     );
@@ -350,7 +350,7 @@ async function searchUsers(query, limit = 20) {
     return results.map(u => ({
         id: u.id,
         authUid: u.auth_uid,
-        firstName: u.first_name || u.email.split('@')[0], // fallback to email alias
+        firstName: u.first_name || 'User',
         lastName: u.last_name || '',
         avatarUrl: u.avatar_url,
         city: u.city,

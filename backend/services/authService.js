@@ -20,7 +20,7 @@ const { jwtSecret, jwtExpiresIn, jwtAlgorithm, bcryptCost } = require('../config
 // whether or not the account exists (prevents user enumeration by timing).
 const DUMMY_HASH = bcrypt.hashSync('dummy-password-for-timing', bcryptCost);
 
-const INVALID_CREDENTIALS = 'Invalid email or password.';
+const INVALID_CREDENTIALS = 'Invalid email, phone number or password.';
 
 function signToken(user) {
   return jwt.sign({ sub: user.authUid, email: user.email }, jwtSecret, {
@@ -47,6 +47,10 @@ async function register({ email, password, firstName, lastName, phone, city }) {
   const existing = await db.query.users.findFirst({ where: eq(users.email, normalizedEmail) });
   if (existing) throw new AppError('An account with this email already exists.', 409);
 
+  // Phone numbers can be used to sign in, so they must identify exactly one account.
+  const phoneTaken = await db.query.users.findFirst({ where: eq(users.phone, phone.trim()) });
+  if (phoneTaken) throw new AppError('An account with this phone number already exists.', 409);
+
   const passwordHash = await bcrypt.hash(password, bcryptCost);
   // auth_uid mirrors id so existing services that look users up by authUid keep working.
   const id = crypto.randomUUID();
@@ -59,7 +63,7 @@ async function register({ email, password, firstName, lastName, phone, city }) {
         email: normalizedEmail,
         firstName,
         lastName,
-        phone: phone || null,
+        phone: phone.trim(),
         city: city || null,
       }).returning();
 
@@ -74,16 +78,19 @@ async function register({ email, password, firstName, lastName, phone, city }) {
   }
 }
 
-async function login({ email, password }) {
-  const normalizedEmail = email.trim().toLowerCase();
+async function login({ identifier, password }) {
+  const value = identifier.trim();
+  const byEmail = value.includes('@');
 
-  const [row] = await db
+  const rows = await db
     .select({ user: users, passwordHash: userCredentials.passwordHash })
     .from(users)
     .innerJoin(userCredentials, eq(userCredentials.userId, users.id))
-    .where(eq(users.email, normalizedEmail))
-    .limit(1);
+    .where(byEmail ? eq(users.email, value.toLowerCase()) : eq(users.phone, value))
+    .limit(2);
 
+  // A phone shared by several (legacy) accounts is ambiguous, so it can't be used to sign in.
+  const row = rows.length === 1 ? rows[0] : undefined;
   const passwordOk = await bcrypt.compare(password, row?.passwordHash ?? DUMMY_HASH);
   if (!row || !passwordOk) throw new AppError(INVALID_CREDENTIALS, 401);
 

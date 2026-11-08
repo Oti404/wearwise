@@ -44,7 +44,7 @@ describe('StorageService (HTTP)', { skip }, () => {
     const res = await fetch(`${baseUrl}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: 'upload-test-pass', firstName: 'Up', lastName: 'Load', phone: '0712345678' }),
+      body: JSON.stringify({ email, password: 'upload-test-pass', firstName: 'Up', lastName: 'Load', phone: `07${String(Date.now()).slice(-8)}${Math.floor(Math.random() * 10)}` }),
     });
     ({ token } = await res.json());
   });

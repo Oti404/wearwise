@@ -38,9 +38,9 @@ import { useUser } from '@/hooks/useUser';
 import { LocationPicker } from './LocationPicker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
+import { API_URL, authHeaders } from '@/config/apiClient';
 
 const { width } = Dimensions.get('window');
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export function ProfilePage() {
   const insets = useSafeAreaInsets();
@@ -60,7 +60,9 @@ export function ProfilePage() {
   useEffect(() => {
     if (user?.uid && !user.firstName) {
       setIsProfileLoading(true);
-      fetch(`${API_URL}/user/${user.uid}`)
+      // With the token the backend returns the full own profile (incl. email/phone).
+      authHeaders()
+        .then((headers) => fetch(`${API_URL}/user/${user.uid}`, { headers }))
         .then(async (res) => {
           const data = await res.json();
           if (res.ok && data?.firstName) login(data);

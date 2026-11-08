@@ -25,4 +25,14 @@ const verifyToken = (req, res, next) => {
   }
 };
 
+/**
+ * optionalToken – like verifyToken, but anonymous requests pass through with req.user unset.
+ * A present-but-invalid token is still rejected, so clients notice expired sessions.
+ */
+const optionalToken = (req, res, next) => {
+  if (!req.headers.authorization) return next();
+  return verifyToken(req, res, next);
+};
+
 module.exports = verifyToken;
+module.exports.optionalToken = optionalToken;

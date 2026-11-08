@@ -3,8 +3,8 @@
 const ratingService = require('../services/ratingSqlService');
 
 const submitRating = async (req, res) => {
-  await ratingService.submitRating(req.body);
-  res.json({ success: true, message: 'Rating trimis cu succes!' });
+  await ratingService.submitRating(req.user.uid, req.body);
+  res.json({ success: true, message: 'Rating submitted.' });
 };
 
 const getUserRatings = async (req, res) => {

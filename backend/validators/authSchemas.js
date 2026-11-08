@@ -16,8 +16,9 @@ const registerSchema = z.object({
   city: z.string().trim().optional(),
 });
 
+// `identifier` is an email address or a phone number.
 const loginSchema = z.object({
-  email: z.string().trim().email('Invalid email.'),
+  identifier: z.string().trim().min(1, 'Email or phone number is required.'),
   password: z.string().min(1, 'Password is required.'),
 });
 

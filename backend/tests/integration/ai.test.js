@@ -40,7 +40,7 @@ describe('AiService (HTTP)', { skip }, () => {
     const res = await fetch(`${baseUrl}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: 'ai-test-password', firstName: 'Ai', lastName: 'Test', phone: '0712345678' }),
+      body: JSON.stringify({ email, password: 'ai-test-password', firstName: 'Ai', lastName: 'Test', phone: `07${String(Date.now()).slice(-8)}${Math.floor(Math.random() * 10)}` }),
     });
     ({ token } = await res.json());
   });

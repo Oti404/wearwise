@@ -9,20 +9,17 @@ const DEFAULT_PAGE_SIZE = 10;
 
 /**
  * Get paginated notifications for a user using cursor-based pagination.
- * userIdParam can be auth_uid (from frontend) or sql id. 
- * We will look it up by auth_uid first.
+ * authUid comes from the verified token, never from user input.
  */
-async function getNotificationsPage(userIdParam, { cursor, limit = DEFAULT_PAGE_SIZE } = {}) {
+async function getNotificationsPage(authUid, { cursor, limit = DEFAULT_PAGE_SIZE } = {}) {
   const pageSize = Math.min(parseInt(limit, 10) || DEFAULT_PAGE_SIZE, 50);
 
   try {
-    // Încearcă să găsească utilizatorul după auth_uid (frontend trimite auth_uid de obicei)
-    let targetUser = await db.query.users.findFirst({
-        where: eq(users.authUid, userIdParam)
+    const targetUser = await db.query.users.findFirst({
+        where: eq(users.authUid, authUid)
     });
-
-    // Dacă nu a găsit după authUid, assume it's already a SQL ID or not found
-    const targetUserId = targetUser ? targetUser.id : userIdParam;
+    if (!targetUser) return { items: [], nextCursor: null };
+    const targetUserId = targetUser.id;
 
     const results = await db.query.notifications.findMany({
       where: (table, { eq, and, lt }) => {
