@@ -11,7 +11,7 @@ Express REST API: accounts and JWT auth, listings, checkout, follows, notificati
 | `npm start` | Apply migrations, start the server |
 | `npm run dev` | Apply migrations, start with nodemon |
 | `npm run migrate` | Apply pending migrations only |
-| `npm run seed` | Create `demo@wearwise.app` (password `SEED_PASSWORD`) and 21 demo listings; idempotent |
+| `npm run seed` | Create `demo@wearwise.app` (password `SEED_PASSWORD`) and 14 demo listings with placeholder images; idempotent |
 | `npm run db:generate` | Generate a migration from `drizzle/schema.ts` |
 | `npm run test:integration` | Integration tests (needs `DATABASE_URL` and `JWT_SECRET`) |
 

@@ -92,7 +92,7 @@ Maintaining structural discipline throughout the monorepo is mandatory. Each mod
 /backend
   /config        -> Centralized config (auth, CORS, rate limits, storage)
   /controllers   -> Request handlers mapping inputs to business outputs
-  /database      -> Demo seed script and its catalog (seeds/wardrobe)
+  /database      -> Demo seed script (generated placeholder images)
   /docs          -> Backend-specific detailed documentations
   /drizzle       -> Drizzle table definitions, schemas and SQL migrations
   /middlewares   -> Validation pipelines, auth, logging injectors

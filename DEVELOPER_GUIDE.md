@@ -60,7 +60,7 @@ Run `docker compose up -d` afterwards to return to the normal stack (it drops th
 - **Schema**: `backend/drizzle/schema.ts` is the source of truth for migrations. `schema.js` mirrors it for the CommonJS runtime and must be kept in sync by hand.
 - **New migration**: edit `schema.ts`, then `cd backend && npm run db:generate`. For SQL that Drizzle can't express (triggers, functions), use `npx drizzle-kit generate --custom --name=<name>`.
 - **Applying migrations**: automatic. The backend runs `drizzle/migrate.js` on every start; applied migrations are tracked in `drizzle.__drizzle_migrations`.
-- **Demo data**: `npm run seed` (or `docker compose exec backend npm run seed`) is idempotent and skips if the demo account exists. The catalog lives in `backend/database/seeds/wardrobe/`. Its product photos may come from a retailer's catalog, so use the seed only for local and demo environments.
+- **Demo data**: `npm run seed` (or `docker compose exec backend npm run seed`) is idempotent and skips if the demo account exists. It creates `demo@wearwise.app` with 14 generic listings and generated placeholder images; no third-party photos are stored in the repo.
 
 ## Tests
 Backend integration tests use Node's built-in test runner against a real Postgres. They create and delete their own users, but use a throwaway database rather than the dev one:

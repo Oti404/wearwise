@@ -252,6 +252,11 @@ Target: one Linux VPS (2 vCPU / 4 GB RAM recommended; [C] measured AI engine: ~3
 - [C] DONE: `CODING_STANDARDS.md` updated with the user's approval: web-only platform, apiClient rule, a new Security Rules section, forward-only migrations, soft delete via `status`/`deleted_at`, node:test integration testing, runtime versions, and a Definition of Done based on typecheck + tests + healthy compose stack.
 - [C] Public-repo hardening: CI `permissions: contents: read`; Dependabot (npm, pip, docker, actions); `SECURITY.md`; `npm audit fix` (backend 10 → 2 vulnerabilities, frontend 51 → 29, no criticals left); zod arrays bounded (cart ≤ 50, images ≤ 10, URLs only) to mitigate the zod 3 memory advisory. Remaining: zod 4 and Express 5 majors (backend), Expo SDK major (frontend).
 
+## Public release preparation (2026-11-08)
+- [C] Seed catalog removed (user decision): the product data and 78 photos appeared to come from a retailer's online store (copyright risk in a public repo). `seed.js` now creates 14 generic listings with placeholder PNGs generated in code. Catalog paths (`frontend/assets/wardrobe/`, `backend/database/seeds/wardrobe/`, `dummy.jpg`) purged from all history.
+- [C] Commit author emails rewritten to the GitHub noreply address (user decision); repo-local `user.email` set to it.
+- [C] License: none, all rights reserved (user decision); stated in README.
+
 ## Execution order & commits
 Each item is at least one commit. The app runs locally after Step 3 (`docker compose up db` + local backend/frontend).
 1. Step 2 rows 1–3 (schema, migrations, migrator) → 2. rows 4–5 (auth) → 3. rows 6–7 (uploads) → 4. rows 8–12 (Supabase removal, seed) → 5. Step 3 → 6. Step 4 → 7. Step 5.

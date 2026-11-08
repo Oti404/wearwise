@@ -54,5 +54,5 @@ graph TD
 ```
 
 ## 7. Data tools
-- `database/seeds/seed.js` (`npm run seed`): demo account plus listings from `database/seeds/wardrobe/`, with images stored through the same storage service as real uploads.
+- `database/seeds/seed.js` (`npm run seed`): demo account plus 14 generic listings; placeholder PNGs are generated in code and stored through the same storage service as real uploads.
 - Put future data scripts in `database/` so the backend root stays clean.

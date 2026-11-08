@@ -21,7 +21,7 @@ git clone https://github.com/Oti404/wearwise.store.git && cd wearwise.store
 
 cp .env.example .env          # then fill in the three secrets (see below)
 docker compose up -d --build  # first build takes a few minutes
-docker compose exec backend npm run seed   # optional: demo account + 21 listings
+docker compose exec backend npm run seed   # optional: demo account + 14 listings
 ```
 
 Open **http://localhost:8080**. With the seed loaded, sign in as `demo@wearwise.app` with the `SEED_PASSWORD` from `.env`.
@@ -61,3 +61,7 @@ The browser only talks to nginx. The API, database and AI engine are reachable o
 - [CODING_STANDARDS.md](./CODING_STANDARDS.md): coding rules
 - [CLAUDE.md](./CLAUDE.md): workflow rules for AI assistants
 - [IMPLEMENTATION.md](./IMPLEMENTATION.md): current implementation plan and decision log
+- [SECURITY.md](./SECURITY.md): how to report a vulnerability
+
+## License
+Copyright © Oti404. All rights reserved. The source is published for reference; no license is granted to copy, modify or redistribute it.
