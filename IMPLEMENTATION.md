@@ -135,3 +135,68 @@ Audit and correct all user-facing text in the frontend. Three categories of issu
 9. `notifications.tsx` tab — stale donation reference
 10. `user/[id].tsx` — minor fix
 11. `RatingModal.tsx` — tone improvements
+
+---
+
+# [C] Zero-Touch Redeploy — Deployment Hardening
+
+## Goal
+A full redeploy (frontend, backend, AI engine) must come up healthy with no manual intervention (no model refresh, no manual warm-up).
+
+## Changes
+| # | File | Change | Reason |
+|---|------|--------|--------|
+| 1 | `ai_engine/Dockerfile` | Pre-download `openai/clip-vit-base-patch32` at build time | Model was downloaded on the first `/classify` call, exceeding the backend's 30s timeout |
+| 2 | `ai_engine/service.py`, `ai_engine/classifier.py` | Eager model load in `lifespan`; `/health` reports `ready` only after CLIP is loaded; `/classify/*` return 503 when not ready | Previously `/health` reported ready before any model was loaded |
+| 3 | `.github/workflows/deploy-ai-hf.yml` | `lfs: true` checkout, `git lfs install --local`, `git init -b main`, `workflow_dispatch` | CI checkout shipped an LFS pointer instead of the `.pt` checkpoint; default branch could be `master`, breaking `push main` |
+| 4 | `.github/workflows/deploy-render.yml` | `workflow_dispatch` forces both deploys; `curl -f` fails the job on a bad hook | Redeploy was impossible without a path change; hook failures were silent |
+| 5 | `.github/workflows/keep-alive.yml` | Cron every 10 min pings backend `/ping` and AI `/health` | Render free web services sleep after ~15 min idle; HF Spaces after ~48h |
+
+## [C] Manual prerequisites (one-time)
+- Repo variables: `BACKEND_URL`, `AI_ENGINE_URL`.
+- Secrets: `HF_TOKEN` (rotate if it is the leaked one), `RENDER_DEPLOY_HOOK_FRONTEND`, `RENDER_DEPLOY_HOOK_BACKEND`.
+- Render env: `EXPO_PUBLIC_API_URL` (build-time), `AI_ENGINE_URL`, `ALLOWED_ORIGINS`.
+
+## [C] Edge cases
+- Scheduled workflows only run from the default branch (`main`) and GitHub disables them after 60 days of repo inactivity.
+- Cron runs can be delayed by several minutes under GitHub load — keep-alive reduces, not eliminates, cold starts.
+- AI container startup is now slower (model load before serving), but no request ever hits an unloaded model.
+
+---
+
+# [C] Final Stage — Repo Cleanup & Single-VPS Docker Deployment
+
+## Step 1 — Repo cleanup (approved: groups A–D) — DONE
+| Group | Files | Reason |
+|---|---|---|
+| A | `git`, `scripts/dev/localhost)`, `check_db.js`, `test_api.js`, `test_pagination.js`, `test_hf_classify.py`, `backend/fix-cors.js`, `backend/debug_*.js`, `ai_engine/debug.log`, `ai_engine/dummy2.jpg`, `backend/render.yaml`, `frontend/render.yaml`, `frontend/vercel.json`, `*.git_remote`, `ai_engine/.git/` | Dead, broken (Firebase/GCS era), leaked token, or duplicate config |
+| B | `sync.bat`, `backend/sync.bat`, `ai_engine/sync.bat`, `scripts/git/`, `.github/workflows/sync_modules.yml`, `ai_engine/.github/` | Multi-repo mirroring no longer used |
+| C | `run.bat`, `run_tests.bat`, `setup_project.bat`, `bootstrap_wearwise.bat`, `scripts/dev/` | Replaced by `docker compose` |
+| D | `PROMPT.md`; fix `ARCHITECTURE.md` directory map | Non-English doc; map lists non-existent dirs |
+| — | `.gitignore`: `.expo/`, `.idea/`, `.pytest_cache/`, `__pycache__/`, `dist/` | DONE |
+
+Follow-up docs that reference deleted tooling and must be rewritten in Step 3: `README.md`, `DEVELOPER_GUIDE.md`, `docs/GIT_WORKFLOW.md`, `docs/TESTING.md`, module READMEs. `backend/.env.example` still documents Firebase — replace with Supabase vars.
+
+## Step 2 — Production Docker stack
+Target: one Linux VPS (min. 2 vCPU / 4 GB RAM — CLIP + torch need ~1.5–2 GB resident), Docker + Compose plugin.
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `backend/Dockerfile` | `node:20-alpine`, `npm ci --omit=dev`, non-root `node` user, `HEALTHCHECK` on `/ping`, port 3000 |
+| 2 | `ai_engine/Dockerfile` | Install torch from the CPU wheel index (`--index-url https://download.pytorch.org/whl/cpu`) — default wheels pull CUDA (~2.5 GB extra); keep CLIP pre-download; `HEALTHCHECK` on `/health` |
+| 3 | `frontend/Dockerfile` (new) | Multi-stage: `node:20` runs `npx expo export --platform web` with `EXPO_PUBLIC_*` as build args → copy `dist/` into `nginx:alpine` with SPA fallback |
+| 4 | `docker-compose.yml` | Rewrite for production: no bind mounts, `restart: unless-stopped`, `env_file`, internal network, AI engine NOT exposed publicly (backend reaches it at `http://ai-engine:7860`), backend `depends_on` AI with `condition: service_healthy` |
+| 5 | `deploy/Caddyfile` (new) + `caddy` service | Reverse proxy with automatic HTTPS: `app.<domain>` → frontend, `api.<domain>` → backend |
+| 6 | `.dockerignore` per module (new) | Exclude `node_modules`, `.venv`, `.env`, `.expo`, logs |
+| 7 | `.env.production.example` (root, new) | Single documented env template for the stack |
+
+## Step 3 — Docs & CI
+- Rewrite `README.md` / `DEVELOPER_GUIDE.md` around `docker compose up --build`.
+- `ci.yml`: Node 20, Python 3.10 (match Dockerfiles), add `docker compose build` job.
+- Decide fate of Render/HF workflows (keep as fallback or remove).
+
+## [C] Open questions / edge cases
+- `EXPO_PUBLIC_*` vars are baked at build time — changing the API URL requires rebuilding the frontend image.
+- `frontend/app.json` deep links still point to `wearwise-web.vercel.app`; must be updated to the new domain.
+- A domain name with DNS A records pointing to the VPS is required for HTTPS.
+- Supabase stays managed — no Postgres container.

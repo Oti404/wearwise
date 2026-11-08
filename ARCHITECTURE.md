@@ -44,27 +44,31 @@ Maintaining structural discipline throughout the monorepo is mandatory. The proj
   /components    -> Reusable React Native UI components (buttons, cards)
   /config        -> App layout and env variables configurations
   /constants     -> Static immutable variables
-  /data          -> Static data mocks
   /hooks         -> Custom React hooks dealing with component state
   /store         -> Zustand configuration and store actions
+  /public        -> Static files served as-is by the web build
   /scripts       -> Setup and manipulation CLI wrappers
 
 /backend
-  /config        -> Centralized config files 
+  /config        -> Centralized config files (Supabase, CORS, rate limits)
   /controllers   -> Request handlers mapping inputs to business outputs
-  /database      -> Database connections and abstractions
+  /database      -> Seed scripts
   /docs          -> Backend-specific detailed documentations
-  /drizzle       -> Drizzle table definitions and schemas
-  /middlewares   -> Validation pipelines, logging injectors
+  /drizzle       -> Drizzle table definitions, schemas and SQL migrations
+  /middlewares   -> Validation pipelines, auth, logging injectors
   /routes        -> Express.js route declarations
   /services      -> Heavy lifting, orchestrating API and database behaviors
-  /tests         -> Future testing suite directory hierarchy
-  /models        -> Internal app models or specific type interfaces
+  /validators    -> Request payload schemas
+  /utils         -> Shared helpers (logger, response helpers, error codes)
+  /types         -> Generated Supabase type definitions
+  /tests         -> Test suite
 
-/ai-engine
-  /src
-    /models      -> Python LLM loaders / statistical functions
-    /api         -> Python HTTP router (FastAPI endpoints)
+/ai_engine       -> Flat Python module (FastAPI)
+  service.py     -> FastAPI app and HTTP endpoints
+  serve.py       -> Uvicorn entrypoint
+  classifier.py, hybrid_classifier.py, binary_clothing_model.py -> CLIP + binary classifier models
+  /artifacts     -> Trained model checkpoints (Git LFS)
+  /utils         -> Logger
 ```
 
 ## Infrastructure and Deployment Topology

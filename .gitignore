@@ -14,3 +14,10 @@ frontend/.env
 
 # Orchestrator Config (contains absolute paths)
 orchestrator_config.bat
+
+# Tooling / build artifacts
+.expo/
+.idea/
+.pytest_cache/
+__pycache__/
+dist/
